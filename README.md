@@ -17,7 +17,8 @@ Below is a comparison table to highlight the feature differences.
 | &#8195;&#8600; System data               | In PROGMEM        | **On System Partition**              |
 | Appliance Configuration                  | JSON File         | JSON File                            |
 | &#8195;&#8600; Data access               | Self-managed      | **Framework API**                    |
-| &#8195;&#8600; Factory reset             | Self-managed      | **Layered FS**                       |
+| &#8195;&#8600; Backup and restore        | Self-managed      | **File system image + Web UI**       |
+| &#8195;&#8600; Factory reset             | Self-managed      | **Automatic with Layered FS**        |
 | RTC memory access                        | Yes               | Yes                                  |
 | &#8195;&#8600; Management API            | No                | **Yes**                              |
 | Time management                          | Yes               | Yes                                  |
@@ -27,15 +28,16 @@ Below is a comparison table to highlight the feature differences.
 | Network Provisioning                     | Yes               | Yes                                  |
 | &#8195;&#8600; With Web page             | Backend Only      | **Backend + Frontend**               |
 | &#8195;&#8600; With Espressif App        | No                | **Yes**                              |
-| &#8195;&#8600; With WPS                  | Yes               | **No** (Maybe &#9733;&#9733;)        |
+| &#8195;&#8600; With WPS                  | Yes               | **No** (Maybe &#9733;)               |
 | &#8195;&#8600; Auto engage / disengage   | Yes               | Yes                                  |
 | &#8195;&#8600; Captive Portal            | Yes               | Yes                                  |
 | Web server                               | Yes               | Yes                                  |
-| &#8195;&#8600; Authentication            | Yes               | **No** (Maybe &#9733;)               |
+| &#8195;&#8600; Authentication            | Yes               | **No** (Maybe &#9733;&#9733;)        |
 | &#8195;&#8600; Caching & ETag validation | Yes               | Yes                                  |
 | &#8195;&#8600; Interactive development   | Custom PUT/DELETE | **WebDAV**                           |
 | FTP server                               | Yes               | **No** (Maybe &#9733;)               |
-| Web OTA                                  | Yes               | **No** (Maybe &#9733;&#9733;&#9733;) |
+| OTA firmware update                      | Backend Only      | **Backend + Frontend**               |
+| &#8195;&#8600; Dual images & toggling    | Self-managed      | **Backend + Frontend**               |
 
 * For `No` features in the new framework, having a `Maybe` tag means they maybe added later,
 and the number of &#9733;s denotes their *relative* priority.
@@ -46,8 +48,8 @@ with multiple bug fixes, backports and feature improvements.
 ## How to Create Appliance
 
 1. Install VSCode and PlatformIO extension, if you don't have them already;
-2. Fork this project on GitHub, and checkout locally;
-3. Open the project root folder, wait for PlatformIO install all dependencies;
+2. From the GitHub UI, click "Use this template" to create a new repo;
+3. Checkout locally abd open the root folder with PlatformIO;
 4. Off you go! (No, really! You are ready!)
 
 If you need a pointer of where to start:

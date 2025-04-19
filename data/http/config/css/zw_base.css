@@ -1,0 +1,490 @@
+@media (prefers-color-scheme: dark) {
+
+  html,
+  body {
+    color: powderblue;
+    background-color: darkslategray;
+    scrollbar-color: teal darkslategray;
+  }
+
+  hr {
+    border-color: cadetblue;
+  }
+
+  a {
+    color: cadetblue;
+  }
+    
+  a:hover {
+    color: deepskyblue;
+  }
+
+  div#page-heading hr {
+    background-image: radial-gradient(cadetblue 15%, transparent, transparent);
+  }
+
+  table,
+  table thead {
+    border-color: cadetblue;
+  }
+
+  table.list tbody tr:nth-child(odd) {
+    background-color: teal;
+  }
+
+  table.list tbody tr:nth-child(even) {
+    background-color: darkslategray;
+  }
+
+  table.interactive.list tbody tr:hover {
+    outline-color: deepskyblue;
+    filter: hue-rotate(30deg) brightness(1.2);
+  }
+
+  table.interactive.list tbody tr.selected {
+    text-shadow: 0 0 1em white;
+    filter: hue-rotate(-120deg) brightness(1.1);
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    color: aliceblue;
+    background-color: darkolivegreen;
+    border-color: powderblue;
+  }
+
+  input[type="text"]:hover,
+  input[type="password"]:hover {
+    background-color: olivedrab;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus {
+    background-color: transparent;
+  }
+
+  input[type="text"]:disabled,
+  input[type="password"]:disabled {
+    color: darkgray;
+    background-color: dimgray;
+    border-color: silver;
+  }
+
+  input[type="submit"],
+  input[type="reset"],
+  input[type="button"] {
+    color: lightskyblue;
+    background-color: darkslategray;
+    border-color: powderblue;
+    box-shadow: inset 0 0 0.5em lightblue;
+  }
+
+  input[type="submit"]:hover,
+  input[type="submit"]:focus,
+  input[type="reset"]:hover,
+  input[type="reset"]:focus,
+  input[type="button"]:hover,
+  input[type="button"]:focus {
+    color: deepskyblue;
+    box-shadow: inset 0 0 1em skyblue;
+  }
+
+  input[type="submit"]:active,
+  input[type="reset"]:active,
+  input[type="button"]:active {
+    color: powderblue;
+    background-color: slategray;
+    box-shadow: inset 0 0 1em skyblue;
+  }
+
+  input[type="submit"]:disabled,
+  input[type="reset"]:disabled,
+  input[type="button"]:disabled {
+    color: silver;
+    background-color: darkslategray;
+    box-shadow: inset 0 0 1em slategray;
+  }
+
+  input[type="checkbox"].embedded {
+    color: powderblue;
+    border-color: cadetblue;
+    background-color: darkslategray;
+  }
+
+  input[type="checkbox"].embedded:checked,
+  input[type="checkbox"].embedded:hover {
+    border-color: deepskyblue;
+  }
+
+  dialog {
+    color: powderblue;
+    background-color: darkslategray;
+    border-color: cadetblue;
+    filter: contrast(1.33);
+  }
+
+  form.dlg-ctrl input[type="reset"] {
+    color: chocolate;
+    background-color: maroon;
+    border-color: sandybrown;
+    box-shadow: inset 0 0 0.5em salmon;
+  }
+
+  form.dlg-ctrl input[type="reset"]:hover,
+  form.dlg-ctrl input[type="reset"]:focus {
+    color: goldenrod;
+    box-shadow: inset 0 0 1em salmon;
+  }
+
+  form.dlg-ctrl input[type="reset"]:active {
+    color: gold;
+    background-color: firebrick;
+  }
+
+}
+
+@media (prefers-color-scheme: light) {
+
+  html,
+  body {
+    color: darkslategrey;
+    background-color: aliceblue;
+    scrollbar-color: powderblue azure;
+  }
+
+  hr {
+    border-color: darkgray;
+  }
+
+  a {
+    color: teal;
+  }
+
+  a:hover {
+    color: darkslateblue;
+  }
+
+  div#page-heading hr {
+    background-image: radial-gradient(powderblue 20%, transparent, transparent);
+  }
+
+  table,
+  table thead {
+    border-color: darkslategrey;
+  }
+
+  table.list tbody tr:nth-child(odd) {
+    background-color: powderblue;
+  }
+
+  table.list tbody tr:nth-child(even) {
+    background-color: aliceblue;
+  }
+
+  table.interactive.list tbody tr:hover {
+    outline-color: deepskyblue;
+    filter: hue-rotate(-30deg) brightness(0.9);
+  }
+
+  table.interactive.list tbody tr.selected {
+    filter: hue-rotate(120deg) brightness(0.9);
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    color: darkslateblue;
+    background-color: azure;
+    border-color: darkslategrey;
+  }
+
+  input[type="text"]:hover,
+  input[type="password"]:hover {
+    background-color: lightcyan;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus {
+    background-color: honeydew;
+  }
+
+  input[type="text"]:disabled,
+  input[type="password"]:disabled {
+    color: slategrey;
+    background-color: darkgray;
+    border-color: dimgray;
+  }
+
+  input[type="submit"],
+  input[type="reset"],
+  input[type="button"] {
+    color: darkcyan;
+    background-color: lightcyan;
+    border-color: darkslategrey;
+    box-shadow: inset 0 0 0.5em lightskyblue;
+  }
+
+  input[type="submit"]:hover,
+  input[type="submit"]:focus,
+  input[type="reset"]:hover,
+  input[type="reset"]:focus,
+  input[type="button"]:hover,
+  input[type="button"]:focus {
+    color: teal;
+    box-shadow: inset 0 0 1em skyblue;
+  }
+
+  input[type="submit"]:active,
+  input[type="reset"]:active,
+  input[type="button"]:active {
+    color: midnightblue;
+    background-color: powderblue;
+    box-shadow: inset 0 0 1em deepskyblue;
+  }
+
+  input[type="submit"]:disabled,
+  input[type="reset"]:disabled,
+  input[type="button"]:disabled {
+    color: gray;
+    background-color: whitesmoke;
+    box-shadow: inset 0 0 1em silver;
+  }
+
+  input[type="checkbox"].embedded {
+    color: darkslategrey;
+    border-color: cadetblue;
+    background-color: powderblue;
+  }
+
+  input[type="checkbox"].embedded:checked,
+  input[type="checkbox"].embedded:hover {
+    border-color: deepskyblue;
+  }
+
+  dialog {
+    color: darkslategrey;
+    background-color: lightcyan;
+    border-color: cadetblue;
+  }
+
+  form.dlg-ctrl input[type="reset"] {
+    color: lightcoral;
+    background-color: mistyrose;
+    border-color: salmon;
+    box-shadow: inset 0 0 0.5em salmon;
+  }
+
+  form.dlg-ctrl input[type="reset"]:hover,
+  form.dlg-ctrl input[type="reset"]:focus {
+    color: chocolate;
+    box-shadow: inset 0 0 1em salmon;
+  }
+
+  form.dlg-ctrl input[type="reset"]:active {
+    color: gold;
+    background-color: firebrick;
+  }
+
+}
+
+@media (pointer: coarse) {
+
+  .fine-pointer {
+    display: none;
+  }
+
+  .coarse-pointer {
+    display: initial;
+  }
+
+}
+
+@media (pointer: fine) {
+
+  .fine-pointer {
+    display: initial;
+  }
+
+  .coarse-pointer {
+    display: none;
+  }
+
+}
+
+.hidden {
+  display: none;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.center {
+  text-align: center;
+}
+body {
+  font-family: sans-serif;
+}
+
+body * {
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s, outline-color 0.2s;
+  scrollbar-width: thin;
+}
+
+h1 {
+  text-align: center;
+}
+
+hr {
+  border-width: 1pt;
+  border-style: solid;
+  margin: 0.5em 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+div#page-heading {
+  margin: 1em 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+div#page-heading h1 {
+  margin: 0;
+}
+
+div#page-heading div {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+div#page-heading hr {
+  border: none;
+  margin: 0.5em auto;
+  width: 70%;
+  height: 1pt;
+}
+
+div#page-container {
+  margin: 0 auto;
+}
+
+table {
+  text-align: left;
+  border-collapse: collapse;
+}
+
+table.full-width {
+  margin: 0.5em;
+  width: calc(100% - 1em);
+  border-width: 3px;
+  border-style: double;
+}
+
+table.interactive.list tbody tr {
+  outline: 1px solid transparent;
+}
+
+table.interactive.list tbody tr:hover {
+  cursor: pointer;
+}
+
+table th,
+table td {
+  padding: 0.125em 0.25em;
+}
+
+table thead {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+
+input:hover {
+  cursor: pointer;
+}
+
+input:disabled {
+  cursor: not-allowed;
+}
+
+input[type="text"],
+input[type="password"] {
+  border-width: 1px;
+  border-style: solid;
+  padding: 0.3em 0.25em 0.2em;
+  outline: none;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  cursor: text;
+}
+
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  padding: 0.5em 1em;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.5em;
+  outline: none;
+}
+
+input[type="checkbox"].embedded {
+  appearance: none;
+  display: inline-block;
+  width: 0.78em;
+  height: 0.8em;
+  padding: 0;
+  margin: 0.1em;
+  box-sizing: content-box;
+  line-height: 88%;
+  text-align: center;
+  font-weight: bold;
+  vertical-align: text-bottom;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.2em;
+}
+
+input[type="checkbox"].embedded:checked:before {
+  content: '\2713';
+}
+
+dialog {
+  padding: 1em;
+  border-width: 3px;
+  border-style: double;
+  max-width: 20em;
+  min-width: 10em;
+}
+
+dialog .body {
+  margin: 0 0.5em 0.5em;
+  max-height: 6em;
+  overflow-y: auto;
+}
+
+dialog .body p {
+  margin: 0 0 0.5em;
+}
+
+dialog:modal {
+  top: -20%;
+  box-shadow: 0 0 3em black;
+}
+
+dialog form.dlg-ctrl {
+  text-align: center;
+}
+
+form.dlg-ctrl input[type="submit"],
+form.dlg-ctrl input[type="reset"],
+form.dlg-ctrl input[type="button"] {
+  margin: 0 0.5em;
+}
+
+dialog::backdrop {
+  backdrop-filter: blur(5px) brightness(0.8);
+}

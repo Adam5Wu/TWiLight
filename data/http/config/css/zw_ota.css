@@ -1,0 +1,124 @@
+@media (prefers-color-scheme: dark) {
+
+  table#fw-table tr.toggle:hover {
+    color: aliceblue;
+    text-shadow: 0 0 0.33em lightblue;
+  }
+
+  form#ota-form .capsule {
+    border-color: cadetblue;
+  }
+
+  form#ota-form label.capsule-inner {
+    background-color: darkslategray;
+  }
+
+  form#ota-form label.capsule-inner:hover,
+  form#ota-form label.capsule-inner.drag-hover {
+    background-color: darkolivegreen;
+  }
+
+  form#ota-form .capsule-inner.prog-test {
+    background-image: linear-gradient(70deg, teal 28%, transparent 33%)
+  }
+
+}
+
+@media (prefers-color-scheme: light) {
+
+  table#fw-table tr.toggle:hover {
+    color: teal;
+    text-shadow: 0 0 0.33em lightskyblue;
+  }
+
+  form#ota-form .capsule {
+    border-color: powderblue;
+  }
+
+  form#ota-form label.capsule-inner {
+    background-color: aliceblue;
+  }
+
+  form#ota-form label.capsule-inner:hover,
+  form#ota-form label.capsule-inner.drag-hover {
+    background-color: powderblue;
+  }
+
+  form#ota-form .capsule-inner.prog-test {
+    background-image: linear-gradient(70deg, lightblue 28%, transparent 33%)
+  }
+
+}
+
+div#page-container {
+  max-width: 30em;
+  min-width: 20em;
+}
+
+table#fw-table .fw-index {
+  width: 1em;
+  text-align: center;
+}
+
+table#fw-table .fw-status {
+  width: 5em;
+}
+
+table#fw-table tr.toggle {
+  cursor: pointer;
+}
+
+table#fw-table tr.toggle:hover .fw-status::after {
+  content: "\21A9";
+  padding: 0 0.25em;
+  line-height: 100%;
+}
+
+form#ota-form {
+  padding: 0.5em;
+}
+
+form#ota-form .capsule {
+  width: 100%;
+  height: 5em;
+  box-sizing: border-box;
+  border-width: 0.2em;
+  border-radius: 1em;
+  text-align: center;
+  position: relative;
+  user-select: none;
+}
+
+form#ota-form .capsule-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75em;
+  line-height: 4.6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+form#ota-form .capsule-inner>span {
+  margin: 0.5em;
+}
+
+form#ota-form div#dropzone {
+  border-style: dashed;
+}
+
+form#ota-form div#dropzone label {
+  cursor: pointer;
+}
+
+form#ota-form div#dropzone input {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+}
+
+form#ota-form div#status {
+  border-style: double;
+}

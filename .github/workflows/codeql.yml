@@ -1,0 +1,114 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Run on every Sunday (1st day of %W)
+    # This will normally refresh the weekly cache
+    - cron: '24 5 * * 0'
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: 'windows-latest'
+    permissions:
+      # required for all workflows
+      security-events: write
+
+      # required to fetch internal or private CodeQL packs
+      packages: read
+
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: c-cpp
+          build-mode: manual
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Generate Environment Variables
+      run: |
+        echo ("WEEKLY_TAG=" + $(date +'%Y-%W')) >> $env:GITHUB_ENV
+        echo ("LOCAL_APPDATA=" + $env:LOCALAPPDATA) >> $env:GITHUB_ENV
+
+    - name: CodeQL ToolCache Version Detect
+      run: |
+        echo ("CODEQL_BUNDLED_VER=" + `
+              (Get-ChildItem C:/hostedtoolcache/windows/CodeQL `
+                -Directory -Name | Select-Object -First 1) `
+        ) >> $env:GITHUB_ENV
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        # This "magic" string seems to trick the init script into using the
+        # pre-cached version from the base image, which saves about 2 mins.
+        tools: http.../codeql-bundle-v${{ env.CODEQL_BUNDLED_VER }}/...
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    # Since there is no good way to detect PIP and PlatformIO updates
+    # we just produced a weekly refreshed cache
+    - name: Python Package Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ env.LOCAL_APPDATA }}/pip/cache
+        # Note: Apparently we cannot cache site-packages because PlatformIO
+        # will also do some some environmental set up during install, which
+        # is not captured by the cache. (This will cost ~20 extra seconds)
+        #  ${{ env.pythonLocation }}/lib/site-packages
+        key: ${{ runner.os }}-pypackage-${{ env.WEEKLY_TAG }}
+        restore-keys: ${{ runner.os }}-pypackage-
+
+    - name: Install PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade platformio
+
+    - name: PlatformIO Package Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.platformio/packages
+          ~/.platformio/penv
+          ~/.platformio/platforms
+        key: ${{ runner.os }}-piopackage-${{ hashFiles('example/platformio.ini') }}
+        restore-keys: ${{ runner.os }}-piopackage-
+
+    - if: ${{ github.event_name != 'schedule' }}
+      name: PlatformIO Build Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          example/.pio
+        key: ${{ runner.os }}-piobuild-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-piobuild-
+
+    # Fix mtime so PlatformIO build cache will work
+    - name: Restore Source Timestamps
+      uses: chetan/git-restore-mtime-action@v2
+
+    - name: PlatformIO Build
+      run: |
+        platformio run
+        
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
