@@ -1,0 +1,169 @@
+@media (prefers-color-scheme: dark) {
+
+  table#wifi-table tbody tr:has(td.wifi-ssid.noname) {
+    color: dimgray;
+  }
+
+  @media only screen and (max-height: 560px) {
+
+    div#page-heading,
+    form#wifi-form {
+      background: darkslategray;
+      box-shadow: 0 0 2em cadetblue;
+      filter: contrast(1.2);
+    }
+
+  }
+
+}
+
+@media (prefers-color-scheme: light) {
+
+  table#wifi-table tbody tr:has(td.wifi-ssid.noname) {
+    color: silver;
+  }
+
+  @media only screen and (max-height: 560px) {
+
+    div#page-heading,
+    form#wifi-form {
+      background: lightcyan;
+      box-shadow: 0 0 2em lightblue;
+    }
+
+  }
+
+}
+
+@media only screen and (max-height: 560px) {
+
+  div#page-heading,
+  div#page-content,
+  div#wifi-table-wrap,
+  form#wifi-form {
+    position: absolute;
+    left: 0;
+    right: 0;
+    min-width: 20em;
+  }
+
+  div#page-heading {
+    height: 3.3em;
+    top: 0;
+    margin: 0;
+    padding: 1em 0 0;
+  }
+
+  div#page-content {
+    top: 4.3em;
+    bottom: 7.5em;
+  }
+
+  div#page-heading.hidden+div#page-content {
+    top: 0;
+  }
+
+  div#wifi-table-wrap {
+    top: 1.6em;
+    bottom: 0;
+    overflow: auto;
+  }
+
+  form#wifi-form {
+    bottom: -7.5em;
+    height: 7.5em;
+  }
+
+}
+
+div#page-container {
+  max-width: 30em;
+  min-width: 20em;
+}
+
+div#status-panel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0.5em 0.75em;
+}
+
+table#wifi-table .wifi-index {
+  width: 2em;
+}
+
+table#wifi-table .wifi-signal {
+  width: 3em;
+}
+
+table#wifi-table tbody {
+  counter-reset: wifi-index-counter;
+}
+
+table#wifi-table tbody tr:has(td.wifi-index.disp) {
+  counter-increment: wifi-index-counter;
+}
+
+table#wifi-table td.wifi-index.disp::before {
+  content: counter(wifi-index-counter);
+}
+
+table#wifi-table td.auth::before {
+  content: "\26BF";
+  margin-right: 0.25em;
+}
+
+table#wifi-table td.signal-1::before {
+  content: "\2581";
+}
+
+table#wifi-table td.signal-2::before {
+  content: "\2581\2583";
+}
+
+table#wifi-table td.signal-3::before {
+  content: "\2581\2583\2585";
+}
+
+table#wifi-table td.signal-4::before {
+  content: "\2581\2583\2585\2587";
+}
+
+form#wifi-form {
+  text-align: center;
+}
+
+form#wifi-form table {
+  width: 18em;
+  margin: 0.5em auto;
+}
+
+form#wifi-form table td.vert-label {
+  width: 3em;
+}
+
+form#wifi-form input[type="text"],
+form#wifi-form input[type="password"] {
+  width: 95%;
+}
+
+form#wifi-form span#password-wrap {
+  white-space: nowrap;
+}
+
+form#wifi-form span#password-wrap {
+  white-space: nowrap;
+}
+
+form#wifi-form input#reveal-passwd {
+  position: relative;
+  left: -1.8em;
+}
+
+form#wifi-form div.controls input {
+  font-size: 12pt;
+  font-weight: bold;
+  width: 8em;
+  padding: 0.5em;
+  margin: 0 0.5em;
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>System Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/zw_base.css">
+  <link rel="stylesheet" href="css/zw_sysmgmt.css">
+  <script src="js/jquery-3.7.1.min.js"></script>
+  <script src="js/zw_base.js"></script>
+  <script src="js/zw_sysmgmt.js"></script>
+</head>
+
+<body>
+
+  <div id="page-container">
+    <div id="page-heading">
+      <h1>System Management</h1>
+      <hr>
+    </div>
+
+    <div id="page-content">
+      <ul class="card-space">
+        <li class="card prog-test" id="storage-backup">
+          <div class="card-icon">&#x1F5AB;</div>Backup
+        </li>
+        <li class="card dropzone disabled" id="storage-restore">
+          <input type="file" id="storage-file">
+          <label for="storage-file" id="storage-file-label">
+            <div class="card-icon">&#x1F5D8;</div>Restore
+          </label>
+        </li>
+        <li class="card" id="storage-reset">
+          <div class="card-icon">&#x1F6E0;</div>Reset
+        </li>
+        <li class="card disabled" id="reboot">
+          <div class="card-icon">&#x1F5F2;</div>Reboot
+        </li>
+      </ul>
+    </div>
+  </div>
+  <iframe name="download-frame" class="hidden"></iframe>
+
+  <dialog id="dialog">
+    <div class="body">
+      <span id="dlg-message">This is a message!</span>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="submit" id="dlg-submit" value="OK">
+      <input type="reset" id="dlg-reset" value="Cancel">
+    </form>
+  </dialog>
+
+</html>
