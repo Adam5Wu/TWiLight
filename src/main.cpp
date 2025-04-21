@@ -55,7 +55,7 @@ void _greeting(void) {
 
 void _reboot_event(int32_t event_id, void* event_data, void* handler_arg) {
   // Give a little time for the signaler to complete their call.
-  vTaskDelay(CONFIG_FREERTOS_HZ / 10);
+  vTaskDelay(CONFIG_FREERTOS_HZ / 2);
 
   // Reverse order of initialization
   ESP_LOGI(TAG, "Finalizing components...");
@@ -68,7 +68,7 @@ void _reboot_event(int32_t event_id, void* event_data, void* handler_arg) {
 
   ESP_LOGI(TAG, "Rebooting...");
 
-  if (eventmgr::system_states_peek(ZW_SYSTEM_STATE_OTA_PENDING)) {
+  if (eventmgr::system_states_peek(ZW_SYSTEM_STATE_BOOT_IMAGE_ALT)) {
 #ifdef ZW_APPLIANCE_FASTBOOT
     // Disable fast-boot since we will be booting from a new image.
     esp_fast_boot_disable();

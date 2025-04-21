@@ -12,9 +12,10 @@
 #include "ZWUtils.hpp"
 #include "ZWAppConfig.h"
 
-#include "Interface_Private.hpp"
 #include "AppEventMgr/Interface.hpp"
 #include "AppStorage/Interface.hpp"
+
+#include "Interface.hpp"
 
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_SYSFUNC
 
@@ -69,8 +70,8 @@ bool sysfunc_boot_serial(const char* feature, httpd_req_t* req) {
 
   switch (req->method) {
     case HTTP_GET:
-      ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, HTTPD_200));
-      ESP_RETURN_ON_ERROR(httpd_resp_send(req, boot_serial_.data(), boot_serial_.length()));
+      httpd_resp_set_type(req, HTTPD_200);
+      httpd_resp_send(req, boot_serial_.data(), boot_serial_.length());
       break;
 
     default:
@@ -105,8 +106,8 @@ bool sysfunc_reboot(const char* feature, httpd_req_t* req) {
   if (_check_boot_serial(feature + utils::STRLEN(FEATURE_REBOOT), req)) {
     switch (req->method) {
       case HTTP_GET:
-        ESP_RETURN_ON_ERROR(httpd_resp_set_status(req, HTTPD_204));
-        ESP_RETURN_ON_ERROR(httpd_resp_send(req, NULL, 0));
+        httpd_resp_set_status(req, HTTPD_204);
+        httpd_resp_send(req, NULL, 0);
         eventmgr::system_event_post(ZW_SYSTEM_EVENT_REBOOT);
         break;
 
