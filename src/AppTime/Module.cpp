@@ -212,7 +212,7 @@ void _time_task(TimerHandle_t) {
 }
 
 esp_err_t _init_time_task(void) {
-  ESP_LOGI(TAG, "Starting time task");
+  ESP_LOGI(TAG, "Starting time task...");
 
   TimerHandle_t time_task_handle_;
   ESP_RETURN_ON_ERROR((time_task_handle_ = xTimerCreate("zw_time_maint", CONFIG_FREERTOS_HZ, pdTRUE,
@@ -249,7 +249,7 @@ esp_err_t _init_time() {
 }  // namespace
 
 esp_err_t init(void) {
-  ESP_LOGI(TAG, "Initializing time...");
+  ESP_LOGI(TAG, "Initializing...");
   ESP_RETURN_ON_ERROR(_init_time());
   ESP_RETURN_ON_ERROR(_init_time_task());
   return ESP_OK;

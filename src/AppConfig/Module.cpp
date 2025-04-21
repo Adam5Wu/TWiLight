@@ -500,10 +500,19 @@ esp_err_t persist() {
 EXPORT_PARSE_FUNC(AppConfig::Wifi::Station, wifi_station);
 // EXPORT_PARSE_FUNC(AppConfig::Wifi::Ap, wifi_ap);
 // EXPORT_PARSE_FUNC(AppConfig::Time, time);
+#undef EXPORT_PARSE_FUNC
+
+#define EXPORT_MARSHAL_FUNC(type, func_name)                                         \
+  esp_err_t marshal_##func_name(utils::AutoReleaseRes<cJSON*>& json, type& config) { \
+    return _diff_##func_name(json, type(), config);                                  \
+  }
+
+// EXPORT_MARSHAL_FUNC(AppConfig::Time, time);
+#undef EXPORT_MARSHAL_FUNC
 
 esp_err_t init() {
   {
-    ESP_LOGI(TAG, "Initializing access lock...");
+    ESP_LOGI(TAG, "Creating access lock...");
     access_lock_ =
 #ifdef ZW_APPLIANCE_COMPONENT_CONFIG_RECURSIVE_LOCK
         xSemaphoreCreateRecursiveMutex();
