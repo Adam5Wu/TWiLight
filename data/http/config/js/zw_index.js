@@ -8,7 +8,7 @@ const SUB_PAGES = [
 
 function addTab(menu_tabs, entry) {
   menu_tabs.find("ul").append(`<li><a href="#${entry['anchor']}">${entry['title']}</a></li>`);
-  var tab_frame = $(`<iframe scrolling="no" frameborder="0" loading="lazy" id="${entry['anchor']}"></iframe>`);
+  var tab_frame = $(`<iframe seamless="seamless" frameborder="0" loading="lazy" id="${entry['anchor']}"></iframe>`);
   tab_frame.on('load', function (evt) {
     $(this).contents().find("div#page-heading").addClass("hidden");
   });

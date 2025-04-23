@@ -87,6 +87,7 @@ ul.card-space {
   margin: 0;
   padding: 0;
   user-select: none;
+  min-width: 20em;
 }
 
 ul.card-space li.card {
