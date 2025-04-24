@@ -1,17 +1,22 @@
+const URL_BOOT_SERIAL = "/!sys/boot_serial";
+
 //----------------------------------------
 // System Management utility functions
 const STATUS_PROBE_INTERVAL = 3000;
-const URL_BOOT_SERIAL = "/!sys/boot_serial";
 
-function probe_boot_serial_for(action, data) {
-  $.when($.get(URL_BOOT_SERIAL)).then(function (text) {
-    console.log("Received boot serial:", text);
-    action(text, data);
+function probe_url_for(url, success_action, fail_action, data) {
+  $.when($.get(url)).then(function (payload) {
+    console.log(`Probe '${url}' succeeded:`, payload);
+    success_action(payload, data);
   }, function (jqXHR, textStatus) {
     var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    console.log("Unable to obtain boot serial:", resp_text || textStatus);
+    console.log(`Probe '${url}' failed: ${resp_text || textStatus}`);
     // Keep retrying if no response text (likely timed out)
-    if (!resp_text) setTimeout(function () { probe_boot_serial_for(action, data); }, STATUS_PROBE_INTERVAL);
+    if (!resp_text) {
+      setTimeout(function () {
+        probe_url_for(url, success_action, fail_action, data);
+      }, STATUS_PROBE_INTERVAL);
+    } else fail_action(resp_text, data);
   });
 }
 
@@ -29,22 +34,51 @@ function dialog_cancel() {
   dialog.close();
 }
 
-function notify_prompt(message) {
+function dialog_close(trigger_action = false) {
+  var dialog = $("#dialog");
+  if (!trigger_action) dialog.off();
+  dialog.data("action", "close");
+  dialog.close();
+}
+
+function block_prompt(message) {
   var dialog = $("#dialog");
   var dialog_msg = $("#dlg-message");
+  var dialog_ok = $("#dlg-submit");
   var dialog_cancel = $("#dlg-reset");
   dialog_msg.html("<p>" + message);
+  dialog_ok.hide();
   dialog_cancel.hide();
   dialog.showModal();
+  dialog.off();
+  dialog.on("keydown", function (evt) { evt.preventDefault(); });
+}
+
+function notify_prompt(message, action) {
+  var dialog = $("#dialog");
+  var dialog_msg = $("#dlg-message");
+  var dialog_ok = $("#dlg-submit");
+  var dialog_cancel = $("#dlg-reset");
+  dialog_msg.html("<p>" + message);
+  dialog_ok.show();
+  dialog_cancel.hide();
+  dialog.showModal();
+  dialog.off();
+  if (typeof action === 'function') {
+    dialog.on("close", function () { dialog.off(); action(); });
+  }
 }
 
 function op_confirm_prompt(message, action, data) {
   var dialog = $("#dialog");
   var dialog_msg = $("#dlg-message");
+  var dialog_ok = $("#dlg-submit");
   var dialog_cancel = $("#dlg-reset");
   dialog_msg.html("<p>" + message);
+  dialog_ok.show();
   dialog_cancel.show();
   dialog.showModal();
+  dialog.off();
   dialog.on("close", function () { op_confirm_action(action, data); });
 }
 

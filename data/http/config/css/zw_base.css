@@ -310,6 +310,11 @@
 
 }
 
+@font-face {
+  font-family: "zw-icons";
+  src: url("../fonts/zw_icons.woff") format('woff');
+}
+
 .hidden {
   display: none;
 }
@@ -321,6 +326,11 @@
 .center {
   text-align: center;
 }
+
+.woff-icon {
+  font-family: "zw-icons";
+}
+
 body {
   font-family: sans-serif;
 }
@@ -342,6 +352,10 @@ hr {
 
 a {
   text-decoration: none;
+}
+
+div#page-container {
+  margin: 0 auto;
 }
 
 div#page-heading {
@@ -366,8 +380,8 @@ div#page-heading hr {
   height: 1pt;
 }
 
-div#page-container {
-  margin: 0 auto;
+div#page-content {
+  position: relative;
 }
 
 table {
@@ -486,5 +500,5 @@ form.dlg-ctrl input[type="button"] {
 }
 
 dialog::backdrop {
-  backdrop-filter: blur(5px) brightness(0.8);
+  backdrop-filter: blur(5px) brightness(0.9);
 }

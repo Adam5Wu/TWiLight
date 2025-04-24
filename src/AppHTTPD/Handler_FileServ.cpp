@@ -13,6 +13,7 @@
 
 #include "AppNetwork/Interface.hpp"
 
+#include "Interface.hpp"
 #include "Interface_Private.hpp"
 
 namespace zw::esp8266::app::httpd {

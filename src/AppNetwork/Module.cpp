@@ -559,7 +559,7 @@ fallthrough:
 }
 
 esp_err_t init(void) {
-  ESP_LOGI(TAG, "Initializing network...");
+  ESP_LOGI(TAG, "Initializing...");
   ESP_RETURN_ON_ERROR(esp_netif_init());
   ESP_RETURN_ON_ERROR(esp_event_loop_create_default());
 

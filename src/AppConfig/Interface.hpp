@@ -144,8 +144,15 @@ extern esp_err_t persist(void);
 DEFINE_PARSE_FUNC(AppConfig::Wifi::Station, wifi_station);
 // DEFINE_PARSE_FUNC(AppConfig::Wifi::Ap, wifi_ap);
 // DEFINE_PARSE_FUNC(AppConfig::Time, time);
-
 #undef DEFINE_PARSE_FUNC
+
+// Marshal a config object into a cJSON object
+#define DEFINE_MARSHAL_FUNC(type, func_name) \
+  extern esp_err_t marshal_##func_name(utils::AutoReleaseRes<cJSON*>& json, type& config)
+
+// DEFINE_MARSHAL_FUNC(AppConfig::Time, time);
+// DEFINE_MARSHAL_FUNC(AppConfig::Wifi::Ap, wifi_ap);
+#undef DEFINE_MARSHAL_FUNC
 
 }  // namespace zw::esp8266::app::config
 

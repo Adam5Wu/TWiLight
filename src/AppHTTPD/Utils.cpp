@@ -32,7 +32,8 @@ utils::DataOrError<std::string> query_parse_param(const char* query_frag, const 
   // Include space for null-terminator for the ESP API.
   ++expect_len;
   ESP_RETURN_ON_ERROR(httpd_query_key_value(query_frag + 1, name, &result.front(), &expect_len));
-  ESP_LOGD(TAG, "Query [%s] = %s", name, result.c_str());
+  result.resize(expect_len - 1);
+  ESP_LOGD(TAG, "Query [%s] = '%s' (%d)", name, result.c_str(), expect_len);
   return result;
 }
 

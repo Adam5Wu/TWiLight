@@ -174,7 +174,10 @@ method_not_allowed:
 bool sysfunc_provision(const char* feature, httpd_req_t* req) {
   if (strncmp(feature, FEATURE_PREFIX, utils::STRLEN(FEATURE_PREFIX)) != 0) return false;
 
-  _handler_provision(feature + utils::STRLEN(FEATURE_PREFIX), req);
+  if (esp_err_t err = _handler_provision(feature + utils::STRLEN(FEATURE_PREFIX), req);
+      err != ESP_OK) {
+    ESP_LOGW(TAG, "Provisioning request handler error: %d (0x%x)", err, err);
+  }
   return true;
 }
 

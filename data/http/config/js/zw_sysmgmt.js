@@ -120,7 +120,7 @@ function do_storage_reset() {
     method: "DELETE",
     url: URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL }),
   }).done(function () {
-    notify_prompt("User setting erased. Rebooting in 3 seconds...");
+    block_prompt("User setting erased. Rebooting in 3 seconds...");
     setTimeout(function () { do_reboot(); }, 3000);
   }).fail(function (jqXHR) {
     var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
@@ -161,7 +161,9 @@ $(function () {
     $("#storage-reset").addClass("disabled");
     $("#reboot").addClass("disabled");
 
-    probe_boot_serial_for(enable_mgmt_functions, null);
+    probe_url_for(URL_BOOT_SERIAL, enable_mgmt_functions, function (text) {
+      notify_prompt("System management feature unavailable: " + text);
+    }, null);
   } else {
     BOOT_SERIAL = "DEADBEEF";
   }
