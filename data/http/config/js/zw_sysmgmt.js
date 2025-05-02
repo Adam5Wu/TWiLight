@@ -4,16 +4,16 @@ const URL_REBOOT = "reboot.html";
 
 var BOOT_SERIAL;
 
-function reboot_click(evt) {
+function reboot_click() {
   if (!BOOT_SERIAL) return;
-  op_confirm_prompt("Confirm reboot?", do_reboot, null);
+  confirm_prompt("<p>Confirm reboot?", do_reboot);
 }
 
 function do_reboot() {
   window.location.href = URL_REBOOT;
 }
 
-function storage_backup_click(evt) {
+function storage_backup_click() {
   var download_link = document.createElement('a');
   download_link.href = URL_STORAGE;
   download_link.setAttribute('download', '');
@@ -38,7 +38,7 @@ function drop_storage_file(evt) {
   $(storage_file).trigger('change');
 }
 
-function storage_file_select(evt) {
+function storage_file_select() {
   const file = this.files[0];
   if (file) {
     console.log("Selected file:", file);
@@ -56,7 +56,7 @@ function storage_file_select(evt) {
 var STORAGE_UPLOADING = false;
 
 function bad_storage_data_message(detail) {
-  return `Not a LittleFS image or corrupted data${detail ? ":<p>" + detail : "."}`;
+  return `<p>Not a LittleFS image or corrupted data${detail ? ":<p>" + detail : "."}`;
 }
 
 function process_storage_data(evt) {
@@ -71,7 +71,8 @@ function process_storage_data(evt) {
     return notify_prompt(bad_storage_data_message("Invalid image magic"));
   }
 
-  op_confirm_prompt("This will replacing all user settings.<p>Proceed?", send_storage_data, storage_data);
+  confirm_prompt("<p>This will replacing all user settings.<p>Proceed?",
+    send_storage_data, { data: storage_data });
 }
 
 function send_storage_progress(evt) {
@@ -101,10 +102,10 @@ function send_storage_data(storage_data) {
     }
   }).done(function () {
     $("#storage-restore").css("background-image", "");
-    op_confirm_prompt("Upload complete.<p>A reboot is highly recommended, proceed?", do_reboot, null);
+    confirm_prompt("<p>Upload complete.<p>A reboot is highly recommended, proceed?", do_reboot);
   }).fail(function (jqXHR) {
     var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt("Upload failed" + (resp_text ? ": " + resp_text : "."));
+    notify_prompt(`<p>Upload failed${resp_text ? ": " + resp_text : "."}`);
   }).always(function () {
     STORAGE_UPLOADING = false;
   });
@@ -112,7 +113,7 @@ function send_storage_data(storage_data) {
 
 function storage_reset_click(evt) {
   if (!BOOT_SERIAL) return;
-  op_confirm_prompt("This will erase all user settings and reboot.<p>Proceed?", do_storage_reset, null);
+  confirm_prompt("<p>This will erase all user settings and reboot.<p>Proceed?", do_storage_reset);
 }
 
 function do_storage_reset() {
@@ -120,11 +121,11 @@ function do_storage_reset() {
     method: "DELETE",
     url: URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL }),
   }).done(function () {
-    block_prompt("User setting erased. Rebooting in 3 seconds...");
+    block_prompt("<p>User setting erased. Rebooting in 3 seconds...");
     setTimeout(function () { do_reboot(); }, 3000);
   }).fail(function (jqXHR) {
     var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt("Setting reset failed" + (resp_text ? ": " + resp_text : "."));
+    notify_prompt(`<p>Setting reset failed${resp_text ? ": " + resp_text : "."}`);
   });
 }
 
@@ -162,7 +163,7 @@ $(function () {
     $("#reboot").addClass("disabled");
 
     probe_url_for(URL_BOOT_SERIAL, enable_mgmt_functions, function (text) {
-      notify_prompt("System management feature unavailable: " + text);
+      notify_prompt(`<p>System management feature unavailable: ${text}`);
     }, null);
   } else {
     BOOT_SERIAL = "DEADBEEF";

@@ -28,11 +28,11 @@ function send_credential(evt) {
     data: JSON.stringify(payload),
     contentType: 'application/json'
   }).done(function () {
-    notify_prompt("Configuration applied!<p>Please wait for the device to connect...");
+    notify_prompt("<p>Configuration applied!<p>Please wait for the device to connect...");
   }).fail(function (jqXHR) {
     var resp_text = (typeof jqXHR.responseText !== 'undefined')
       ? jqXHR.responseText : "(Response text unavailable)";
-    notify_prompt(`Failed to apply configuration.<p>${resp_text}`);
+    notify_prompt(`<p>Failed to apply configuration.<p>${resp_text}`);
   }).always(function () {
     $("#btn-apply").prop('disabled', false);
   });
@@ -43,12 +43,12 @@ function apply_credential(evt) {
 
   var passwd_box = $("#password");
   if (passwd_box.val() == passwd_box.data('reset')) {
-    return notify_prompt("Current configured password has been redacted for privacy.<p>Please re-type.");
+    return notify_prompt("<p>Current configured password has been redacted for privacy.<p>Please re-type.");
   }
 
-  var prompt_message = "The network connection to your device will be interrupted momentarily." +
-    "<p>If the credential doesn't work, the device will come back to provisioning mode.";
-  op_confirm_prompt(prompt_message, send_credential, null);
+  var prompt_message = `<p>The network connection to your device will be interrupted momentarily.
+    <p>If the credential doesn't work, the device will come back to provisioning mode.`;
+  confirm_prompt(prompt_message, send_credential);
 }
 
 function select_ap(evt) {
