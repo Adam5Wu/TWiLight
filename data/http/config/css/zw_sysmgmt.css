@@ -103,7 +103,8 @@ ul.card-space li.card {
 }
 
 ul.card-space li.card.disabled {
-  cursor: not-allowed;
+  /* cursor: not-allowed; */
+  pointer-events: none;
 }
 
 ul.card-space li.card .card-icon {
