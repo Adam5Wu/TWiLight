@@ -46,6 +46,8 @@
     filter: hue-rotate(-120deg) brightness(1.1);
   }
 
+  select,
+  textarea,
   input[type="text"],
   input[type="password"] {
     color: aliceblue;
@@ -53,16 +55,22 @@
     border-color: powderblue;
   }
 
+  select:hover,
+  textarea:hover,
   input[type="text"]:hover,
   input[type="password"]:hover {
     background-color: olivedrab;
   }
 
+  select:focus,
+  textarea:focus,
   input[type="text"]:focus,
   input[type="password"]:focus {
-    background-color: transparent;
+    background-color: darkslategray;
   }
 
+  select:disabled,
+  textarea:disabled,
   input[type="text"]:disabled,
   input[type="password"]:disabled {
     color: darkgray;
@@ -123,20 +131,20 @@
     filter: contrast(1.33);
   }
 
-  form.dlg-ctrl input[type="reset"] {
+  .dlg-ctrl input[type="reset"] {
     color: chocolate;
     background-color: maroon;
     border-color: sandybrown;
     box-shadow: inset 0 0 0.5em salmon;
   }
 
-  form.dlg-ctrl input[type="reset"]:hover,
-  form.dlg-ctrl input[type="reset"]:focus {
+  .dlg-ctrl input[type="reset"]:hover,
+  .dlg-ctrl input[type="reset"]:focus {
     color: goldenrod;
     box-shadow: inset 0 0 1em salmon;
   }
 
-  form.dlg-ctrl input[type="reset"]:active {
+  .dlg-ctrl input[type="reset"]:active {
     color: gold;
     background-color: firebrick;
   }
@@ -190,6 +198,8 @@
     filter: hue-rotate(120deg) brightness(0.9);
   }
 
+  select,
+  textarea,
   input[type="text"],
   input[type="password"] {
     color: darkslateblue;
@@ -197,16 +207,22 @@
     border-color: darkslategrey;
   }
 
+  select:hover,
+  textarea:hover,
   input[type="text"]:hover,
   input[type="password"]:hover {
     background-color: lightcyan;
   }
 
+  select:focus,
+  textarea:focus,
   input[type="text"]:focus,
   input[type="password"]:focus {
     background-color: honeydew;
   }
 
+  select:disabled,
+  textarea:disabled,
   input[type="text"]:disabled,
   input[type="password"]:disabled {
     color: slategrey;
@@ -217,7 +233,7 @@
   input[type="submit"],
   input[type="reset"],
   input[type="button"] {
-    color: darkcyan;
+    color: steelblue;
     background-color: lightcyan;
     border-color: darkslategrey;
     box-shadow: inset 0 0 0.5em lightskyblue;
@@ -266,20 +282,20 @@
     border-color: cadetblue;
   }
 
-  form.dlg-ctrl input[type="reset"] {
+  .dlg-ctrl input[type="reset"] {
     color: lightcoral;
     background-color: mistyrose;
     border-color: salmon;
     box-shadow: inset 0 0 0.5em salmon;
   }
 
-  form.dlg-ctrl input[type="reset"]:hover,
-  form.dlg-ctrl input[type="reset"]:focus {
+  .dlg-ctrl input[type="reset"]:hover,
+  .dlg-ctrl input[type="reset"]:focus {
     color: chocolate;
     box-shadow: inset 0 0 1em salmon;
   }
 
-  form.dlg-ctrl input[type="reset"]:active {
+  .dlg-ctrl input[type="reset"]:active {
     color: gold;
     background-color: firebrick;
   }
@@ -398,20 +414,29 @@ table.full-width {
 
 table.interactive.list tbody tr {
   outline: 1px solid transparent;
-}
-
-table.interactive.list tbody tr:hover {
   cursor: pointer;
 }
 
 table th,
 table td {
   padding: 0.125em 0.25em;
+  position: relative;
 }
 
 table thead {
   border-bottom-width: 1px;
   border-bottom-style: solid;
+}
+
+select,
+textarea {
+  border-radius: 0;
+}
+
+input,
+button,
+textarea {
+  font-size: inherit;
 }
 
 input:hover {
@@ -438,7 +463,7 @@ input[type="password"]:focus {
 input[type="submit"],
 input[type="reset"],
 input[type="button"] {
-  padding: 0.5em 1em;
+  padding: 0.4em 0.8em;
   border-width: 1px;
   border-style: solid;
   border-radius: 0.5em;
@@ -474,13 +499,13 @@ dialog {
   min-width: 10em;
 }
 
-dialog .body {
+dialog .dlg-body {
   margin: 0 0.5em 0.5em;
   max-height: 6em;
   overflow-y: auto;
 }
 
-dialog .body p {
+dialog .dlg-body p {
   margin: 0 0 0.5em;
 }
 
@@ -489,13 +514,13 @@ dialog:modal {
   box-shadow: 0 0 3em black;
 }
 
-dialog form.dlg-ctrl {
+dialog .dlg-ctrl {
   text-align: center;
 }
 
-form.dlg-ctrl input[type="submit"],
-form.dlg-ctrl input[type="reset"],
-form.dlg-ctrl input[type="button"] {
+.dlg-ctrl input[type="submit"],
+.dlg-ctrl input[type="reset"],
+.dlg-ctrl input[type="button"] {
   margin: 0 0.5em;
 }
 
