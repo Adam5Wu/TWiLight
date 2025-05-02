@@ -30,10 +30,10 @@
             <div class="card-icon woff-icon">&#x1F5D8;</div>Restore
           </label>
         </li>
-        <li class="card" id="storage-reset">
+        <li class="card disabled" id="storage-reset">
           <div class="card-icon woff-icon">&#x1F6E0;</div>Reset
         </li>
-        <li class="card disabled" id="reboot">
+        <li class="card" id="reboot">
           <div class="card-icon woff-icon">&#x1F5F2;</div>Reboot
         </li>
       </ul>
@@ -42,12 +42,12 @@
   <iframe name="download-frame" class="hidden"></iframe>
 
   <dialog id="dialog">
-    <div class="body">
-      <span id="dlg-message">This is a message!</span>
+    <div class="dlg-body">
+      <span class="dlg-message">This is a message!</span>
     </div>
     <form class="dlg-ctrl" method="dialog">
-      <input type="submit" id="dlg-submit" value="OK">
-      <input type="reset" id="dlg-reset" value="Cancel">
+      <input type="submit" value="OK">
+      <input type="reset" value="Cancel">
     </form>
   </dialog>
 
