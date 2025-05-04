@@ -1,4 +1,4 @@
-const ZWBASE_VERSION = "1.0.3"
+const ZWBASE_VERSION = "1.0.4"
 
 const URL_BOOT_SERIAL = "/!sys/boot_serial";
 
@@ -6,20 +6,52 @@ const URL_BOOT_SERIAL = "/!sys/boot_serial";
 // System Management utility functions
 const STATUS_PROBE_INTERVAL = 3000;
 
-function probe_url_for(url, success_action, fail_action, data) {
-  $.when($.get(url)).then(function (payload) {
-    console.log(`Probe '${url}' succeeded:`, payload);
-    success_action(payload, data);
-  }, function (jqXHR, textStatus) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    console.log(`Probe '${url}' failed: ${resp_text || textStatus}`);
-    // Keep retrying if no response text (likely timed out)
-    if (!resp_text) {
-      setTimeout(function () {
-        probe_url_for(url, success_action, fail_action, data);
-      }, STATUS_PROBE_INTERVAL);
-    } else fail_action(resp_text, data);
-  });
+function probe_url_for(url, success_action, fail_action, extra_opt) {
+  var options = $.extend({}, extra_opt);
+  var prob_container = {
+    attempt: 0,
+    timer: null,
+    xhr: $.get(url),
+    abort: function () {
+      if (this.xhr) { this.xhr.abort(); this.xhr = null; }
+      if (this.timer) clearTimeout(this.timer);
+      if (options['onabort']) options['onabort'](options['data']);
+      if (options['always']) options['always'](options['data']);
+    },
+    action: function () {
+      this.attempt++;
+      $.when(this.xhr).then(function (payload) {
+        console.log(`Probe '${url}' succeeded:`, payload);
+        success_action(payload, options['data']);
+        if (options['always']) options['always'](options['data']);
+      }, function (jqXHR, textStatus) {
+        // Check if the probing has been aborted
+        if (!prob_container['xhr']) {
+          console.log(`Probe '${url}' aborted.`);
+          return;
+        }
+
+        var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
+        console.log(`Probe '${url}' failed (#${prob_container['attempt']}): ${resp_text || textStatus}`);
+
+        // Keep retrying if no response text (likely timed out)
+        if (resp_text) {
+          fail_action(resp_text, ['data']);
+          if (options['always']) options['always'](options['data']);
+          return;
+        }
+
+        prob_container['timer'] = setTimeout(function () {
+          prob_container['timer'] = null;
+          prob_container['xhr'] = $.get(url);
+          prob_container['action'].apply(prob_container);
+        }, STATUS_PROBE_INTERVAL);
+      });
+    }
+  };
+
+  prob_container.action();
+  return prob_container;
 }
 
 //------------------------------
