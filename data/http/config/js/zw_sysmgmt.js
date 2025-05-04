@@ -164,7 +164,7 @@ $(function () {
 
     probe_url_for(URL_BOOT_SERIAL, enable_mgmt_functions, function (text) {
       notify_prompt(`<p>System management feature unavailable: ${text}`);
-    }, null);
+    });
   } else {
     BOOT_SERIAL = "DEADBEEF";
   }

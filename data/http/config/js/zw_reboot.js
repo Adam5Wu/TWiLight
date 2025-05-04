@@ -13,12 +13,12 @@ function request_reboot(boot_serial) {
       probe_url_for(URL_BOOT_SERIAL, navigate_back, function (text) {
         $("#page-content").text(`Failed to probe boot serial: ${text}`);
         setTimeout(function () { navigate_back(); }, STATUS_PROBE_INTERVAL);
-      }, null);
+      });
     }, STATUS_PROBE_INTERVAL);
   }, function (text) {
     $("#page-content").text(`Reboot request failed: ${text}`);
     setTimeout(function () { navigate_back(); }, STATUS_PROBE_INTERVAL);
-  }, null);
+  });
 }
 
 $(function () {
@@ -26,7 +26,7 @@ $(function () {
     probe_url_for(URL_BOOT_SERIAL, request_reboot, function (text) {
       $("#page-content").text(`Failed to probe boot serial: ${text}`);
       setTimeout(function () { navigate_back(); }, STATUS_PROBE_INTERVAL);
-    }, null);
+    });
   } else {
     setTimeout(function () { navigate_back(); }, STATUS_PROBE_INTERVAL);
   }

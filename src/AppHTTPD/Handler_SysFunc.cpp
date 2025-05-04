@@ -271,7 +271,7 @@ const std::vector<SysFuncHandler> subfunc_ = {
 };
 
 esp_err_t _handler_sysfunc(httpd_req_t* req) {
-  ESP_LOGI(TAG, req->uri);
+  ESP_LOGI(TAG, "%s", req->uri);
   const char* feature = req->uri + utils::STRLEN(URI_PATTERN) - 1;
   if (*feature == '\0' || *feature != URI_PATH_DELIM) {
     return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Malformed request");
