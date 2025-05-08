@@ -3,7 +3,7 @@
 
 #include <sdkconfig.h>
 
-#define _ZW_APPLIANCE_NAME "ZWBase"
+#define _ZW_APPLIANCE_NAME "TWiLight"
 inline constexpr char ZW_APPLIANCE_NAME[] = _ZW_APPLIANCE_NAME;
 inline constexpr char ZW_APPLIANCE_AP_PREFIX[] = _ZW_APPLIANCE_NAME "-";
 

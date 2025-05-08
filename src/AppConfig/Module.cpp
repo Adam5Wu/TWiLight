@@ -154,6 +154,9 @@ esp_err_t _parse(const char* data, AppConfig& container, bool strict) {
   PARSE_CONFIG_OBJ(*json, container, dev_mode, dev_mode, strict);
   PARSE_CONFIG_OBJ(*json, container, http_server, httpd, strict);
 
+  ESP_RETURN_ON_ERROR(
+      twilight::parse_config(cJSON_GetObjectItem(*json, "twilight"), container.twilight, strict));
+
   failsafe.Drop();
   return ESP_OK;
 }
@@ -249,6 +252,7 @@ void _log(const AppConfig& container) {
   _log_time(container.time);
   _log_http_server(container.http_server);
 
+  twilight::log_config(container.twilight);
   ESP_LOGI(TAG, "----------------------------");
 }
 
@@ -345,6 +349,9 @@ esp_err_t _marshal(utils::AutoReleaseRes<cJSON*>& container, const AppConfig& ba
   MARSHAL_CONFIG_OBJ(container, base, update, dev_mode, dev_mode);
   MARSHAL_CONFIG_OBJ(container, base, update, time, time);
   MARSHAL_CONFIG_OBJ(container, base, update, http_server, httpd);
+
+  ESP_RETURN_ON_ERROR(marshal_config_obj(container, "twilight", base.twilight, update.twilight,
+                                         twilight::marshal_config));
 
   return ESP_OK;
 }
