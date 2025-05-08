@@ -16,9 +16,22 @@ function addTab(menu_tabs, entry) {
   menu_tabs.append(tab_frame);
 }
 
+function tabMessage(evt) {
+  const payload = JSON.parse(evt.data);
+
+  if ('reboot' in payload) {
+    console.log("Reboot signaled, renewing inactive tabs...");
+    const menu_tabs = $("#config-tabs");
+    menu_tabs.find('iframe:hidden').each(function (idx, elem) {
+      const tab_frame = $(elem);
+      tab_frame.attr('src', tab_frame.attr('src'));
+    });
+  }
+}
+
 $(function () {
-  var menu_tabs = $("#config-tabs");
-  for (var idx in SUB_PAGES) addTab(menu_tabs, SUB_PAGES[idx]);
+  const menu_tabs = $("#config-tabs");
+  for (const idx in SUB_PAGES) addTab(menu_tabs, SUB_PAGES[idx]);
 
   menu_tabs.tabs({
     activate: function (event, ui) {
@@ -26,9 +39,11 @@ $(function () {
     }
   });
 
-  var hash = window.location.hash;
+  const hash = window.location.hash;
   if (hash) {
     menu_tabs.tabs('option', 'active',
       menu_tabs.find('a[href="' + hash + '"]').parent().index());
   }
+
+  window.onmessage = tabMessage;
 });

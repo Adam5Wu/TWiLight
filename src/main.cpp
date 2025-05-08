@@ -24,6 +24,21 @@ namespace {
 
 inline constexpr char TAG[] = "Main";
 
+void _stagger_boot(void) {
+#if defined(CONFIG_RESET_REASON) && (CONFIG_COLD_BOOT_STAGGER_MS > 0)
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON:
+    case ESP_RST_BROWNOUT:
+      vTaskDelay(CONFIG_COLD_BOOT_STAGGER_MS / portTICK_PERIOD_MS);
+      break;
+
+    default: {
+      // Nothing to do
+    }
+  }
+#endif
+}
+
 inline const char* _model_name(esp_chip_model_t model) {
   switch (model) {
     case CHIP_ESP8266:
@@ -83,6 +98,7 @@ void _reboot_event(int32_t event_id, void* event_data, void* handler_arg) {
 }  // namespace
 
 esp_err_t main(void) {
+  _stagger_boot();
   _greeting();
 
 #ifdef ZW_APPLIANCE_FASTBOOT
