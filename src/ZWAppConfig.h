@@ -19,6 +19,12 @@ inline constexpr char ZW_STORAGE_MOUNT_POINT[] = "/" _ZW_STORAGE_PART_LABEL;
 #define ZW_SYSTIME_AVAILABLE
 #endif
 
+// Stagger cold boot to avoid in-rush power consumption leading to
+// some under-buffered programming adapter to fail USB negotiation.
+#ifdef CONFIG_RESET_REASON
+#define CONFIG_COLD_BOOT_STAGGER_MS 1000
+#endif
+
 #ifdef CONFIG_BOOTLOADER_FAST_BOOT
 // Enable use of fastboot (skips factory reset check on "hot" boot)
 #define ZW_APPLIANCE_FASTBOOT

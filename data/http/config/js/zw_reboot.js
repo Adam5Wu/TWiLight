@@ -9,6 +9,7 @@ function request_reboot(boot_serial) {
   $("#page-content").text(`Requesting reboot...`);
   probe_url_for(URL_REBOOT + $.param({ "bs": boot_serial }), function () {
     $("#page-content").text(`Reboot in progress...`);
+    window.top.postMessage(JSON.stringify({ "reboot": boot_serial }), "*");
     setTimeout(function () {
       probe_url_for(URL_BOOT_SERIAL, navigate_back, function (text) {
         $("#page-content").text(`Failed to probe boot serial: ${text}`);

@@ -257,8 +257,7 @@ void _log(const AppConfig& container) {
 
 std::string _encode_size(const size_t& value) {
   if (value == 0) return "";
-  utils::DataBuf buffer(16);
-  return buffer.PrintTo("%u", value);
+  return utils::DataBuf(16).PrintTo("%u", value);
 }
 
 std::string _encode_netmask(const std::optional<ip_addr_t>& addr) {
