@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "cJSON.h"
+
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -12,9 +14,10 @@
 #include "ZWUtils.hpp"
 #include "ZWAppConfig.h"
 
-#include "Interface_Private.hpp"
 #include "AppEventMgr/Interface.hpp"
 #include "AppStorage/Interface.hpp"
+
+#include "Interface.hpp"
 
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_SYSFUNC
 
@@ -24,6 +27,7 @@
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_OTA
 #include "Handler_SysFunc_OTA.hpp"
 #endif
+#include "Handler_SysFunc_Config.hpp"
 
 namespace zw::esp8266::app::httpd {
 namespace {
@@ -53,7 +57,7 @@ esp_err_t init_boot_serial_() {
   if (boot_serial_.empty()) {
     append_hex_digit(esp_random(), boot_serial_);
   }
-  ESP_LOGI(TAG, "Boot serial: %s", boot_serial_.c_str());
+  ESP_LOGD(TAG, "Boot serial: %s", boot_serial_.c_str());
   return ESP_OK;
 }
 
@@ -69,8 +73,8 @@ bool sysfunc_boot_serial(const char* feature, httpd_req_t* req) {
 
   switch (req->method) {
     case HTTP_GET:
-      ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, HTTPD_200));
-      ESP_RETURN_ON_ERROR(httpd_resp_send(req, boot_serial_.data(), boot_serial_.length()));
+      httpd_resp_set_type(req, HTTPD_200);
+      httpd_resp_send(req, boot_serial_.data(), boot_serial_.length());
       break;
 
     default:
@@ -105,8 +109,8 @@ bool sysfunc_reboot(const char* feature, httpd_req_t* req) {
   if (_check_boot_serial(feature + utils::STRLEN(FEATURE_REBOOT), req)) {
     switch (req->method) {
       case HTTP_GET:
-        ESP_RETURN_ON_ERROR(httpd_resp_set_status(req, HTTPD_204));
-        ESP_RETURN_ON_ERROR(httpd_resp_send(req, NULL, 0));
+        httpd_resp_set_status(req, HTTPD_204);
+        httpd_resp_send(req, NULL, 0);
         eventmgr::system_event_post(ZW_SYSTEM_EVENT_REBOOT);
         break;
 
@@ -190,7 +194,7 @@ esp_err_t _storage_restore(httpd_req_t* req) {
       int recv_len =
           httpd_req_recv(req, (char*)&ota_data.front() + read_pos, SPI_FLASH_SEC_SIZE - read_pos);
       if (recv_len <= 0) {
-        ESP_LOGI(TAG, "Data partition read short by %d (+%d sectors)",
+        ESP_LOGW(TAG, "Data partition read short by %d (+%d sectors)",
                  SPI_FLASH_SEC_SIZE - read_pos, accessor->sectors() - idx - 1);
         return ESP_FAIL;
       }
@@ -237,7 +241,7 @@ bool sysfunc_storage(const char* feature, httpd_req_t* req) {
       }
       break;
 
-    case HTTP_POST:
+    case HTTP_PUT:
       if (_check_boot_serial(query_frag, req)) {
         if (_storage_restore(req) != ESP_OK) {
           httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to restore storage");
@@ -260,7 +264,7 @@ bool sysfunc_storage(const char* feature, httpd_req_t* req) {
 }
 
 const std::vector<SysFuncHandler> subfunc_ = {
-    sysfunc_boot_serial, sysfunc_reboot, sysfunc_storage,
+    sysfunc_boot_serial, sysfunc_reboot, sysfunc_storage, sysfunc_config,
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_NET_PROVISION
     sysfunc_provision,
 #endif
@@ -270,7 +274,7 @@ const std::vector<SysFuncHandler> subfunc_ = {
 };
 
 esp_err_t _handler_sysfunc(httpd_req_t* req) {
-  ESP_LOGI(TAG, req->uri);
+  ESP_LOGI(TAG, "[%s] %s", http_method_str((enum http_method)req->method), req->uri);
   const char* feature = req->uri + utils::STRLEN(URI_PATTERN) - 1;
   if (*feature == '\0' || *feature != URI_PATH_DELIM) {
     return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Malformed request");
@@ -286,10 +290,44 @@ esp_err_t _handler_sysfunc(httpd_req_t* req) {
 
 }  // namespace
 
+esp_err_t send_json(httpd_req_t* req, const cJSON* json) {
+  utils::AutoReleaseRes<char*> json_str(cJSON_Print(json), [](char* data) {
+    if (data) cJSON_free(data);
+  });
+  if (*json_str == nullptr) {
+    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to print JSON data");
+  }
+
+  ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, HTTPD_TYPE_JSON));
+  ESP_RETURN_ON_ERROR(httpd_resp_send(req, *json_str, HTTPD_RESP_USE_STRLEN));
+
+  return ESP_OK;
+}
+
+esp_err_t receive_json(httpd_req_t* req, utils::AutoReleaseRes<cJSON*>& json) {
+  std::string config_str(req->content_len, '\0');
+  if (int recv_len = httpd_req_recv(req, &config_str.front(), config_str.length() + 1);
+      recv_len != req->content_len) {
+    ESP_LOGW(TAG, "Receive short, expect %d, got %d", req->content_len, recv_len);
+    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Not all data received");
+  }
+  // Skip checking "Content-Type", just try parse as JSON.
+  json = utils::AutoReleaseRes<cJSON*>(cJSON_ParseWithOpts(config_str.data(), NULL, true),
+                                       [](cJSON* data) {
+                                         if (data) cJSON_Delete(data);
+                                       });
+  if (*json == nullptr) {
+    ESP_LOGW(TAG, "Failed to parse data (around byte %d)", cJSON_GetErrorPtr() - config_str.data());
+    ESP_LOG_BUFFER_HEXDUMP(TAG, cJSON_GetErrorPtr() - 16, 32, ESP_LOG_DEBUG);
+    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload failed to parse as JSON");
+  }
+  return ESP_OK;
+}
+
 esp_err_t register_handler_sysfunc(httpd_handle_t httpd) {
   ESP_RETURN_ON_ERROR(init_boot_serial_());
 
-  ESP_LOGI(TAG, "Register handler on %s", URI_PATTERN);
+  ESP_LOGD(TAG, "Register handler on %s", URI_PATTERN);
   {
     httpd_uri_t handler = {
         .uri = URI_PATTERN,

@@ -25,7 +25,7 @@ template <const char* TAG, void (*func)(void*)>
 void ZWTaskWrapper(void* param) {
   if (!eventmgr::IsSystemFailed()) {
     func(param);
-    ESP_LOGI(TAG, "=> Heap: %d; Stack: %d", esp_get_free_heap_size(),
+    ESP_LOGD(TAG, "=> Heap: %d; Stack: %d", esp_get_free_heap_size(),
              uxTaskGetStackHighWaterMark(NULL));
   }
   vTaskDelete(xTaskGetCurrentTaskHandle());

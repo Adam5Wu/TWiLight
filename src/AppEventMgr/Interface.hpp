@@ -18,14 +18,12 @@ namespace zw::esp8266::app::eventmgr {
 // System states management
 #define ZW_SYSTEM_STATE_FAILURE BIT0
 #define ZW_SYSTEM_STATE_RESTART BIT1
-#define ZW_SYSTEM_STATE_OTA_PENDING BIT3
-
-#define ZW_SYSTEM_STATE_TIME_NTP_DISABLED BIT4
-#define ZW_SYSTEM_STATE_TIME_NTP_TRACKING BIT5
-
+#define ZW_SYSTEM_STATE_BOOT_IMAGE_ALT BIT2
+#define ZW_SYSTEM_STATE_TIME_NTP_DISABLED BIT3
+#define ZW_SYSTEM_STATE_TIME_NTP_TRACKING BIT4
+#define ZW_SYSTEM_STATE_TIME_ALIGNED BIT5
 #define ZW_SYSTEM_STATE_NET_STA_IP_READY BIT6
 #define ZW_SYSTEM_STATE_NET_STA_RECONNECT BIT7
-
 #define ZW_SYSTEM_STATE_HTTPD_READY BIT8
 
 extern EventGroupHandle_t system_states(void);
@@ -43,9 +41,10 @@ extern void SetSystemFailed(void);
 #define ZW_SYSTEM_EVENT_REBOOT 0
 #define ZW_SYSTEM_EVENT_NET_REINIT 1
 #define ZW_SYSTEM_EVENT_HTTPD_REINIT 2
-#define ZW_SYSTEM_EVENT_NET_STA_IP_READY 3
-#define ZW_SYSTEM_EVENT_NET_STA_IP_REFRESH 4
-#define ZW_SYSTEM_EVENT_OTA_PENDING 5
+#define ZW_SYSTEM_EVENT_HTTPD_READY 3
+#define ZW_SYSTEM_EVENT_NET_STA_IP_READY 4
+#define ZW_SYSTEM_EVENT_NET_STA_IP_REFRESH 5
+#define ZW_SYSTEM_EVENT_BOOT_IMAGE_ALT 6
 
 extern esp_err_t system_event_post(int32_t event_id, const void* event_data, size_t data_size);
 
@@ -63,7 +62,7 @@ void SystemEventHandlerWrapper(void* handler_arg, esp_event_base_t event_base, i
                                void* event_data) {
   if (!IsSystemFailed()) {
     handler(event_id, event_data, handler_arg);
-    ESP_LOGI(TAG, "~> Heap: %d; Stack: %d", esp_get_free_heap_size(),
+    ESP_LOGD(TAG, "~> Heap: %d; Stack: %d", esp_get_free_heap_size(),
              uxTaskGetStackHighWaterMark(NULL));
   }
 }

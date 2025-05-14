@@ -90,7 +90,8 @@ using std::chrono::system_clock;
 esp_err_t _COMMON_FS_HEADERS(const struct stat& st, httpd_req_t* req, utils::DataBufStash& vcache) {
   ESP_RETURN_ON_ERROR(vcache.AllocAndPrep(32, [&](utils::DataBuf& buf) {
     struct tm lt;
-    strftime((char*)&buf.front(), 32, HTTP_DATE_TMPL, localtime_r(&st.st_mtime, &lt));
+    // All HTTP date/time stamps MUST be represented in Greenwich Mean Time (GMT), without exception.
+    strftime((char*)&buf.front(), 32, HTTP_DATE_TMPL, gmtime_r(&st.st_mtime, &lt));
     return httpd_resp_set_hdr(req, DAV_HEADER_LAST_MODIFIED, (char*)&buf.front());
   }));
   ESP_RETURN_ON_ERROR(vcache.AllocAndPrep(20, [&](utils::DataBuf& buf) {
@@ -452,7 +453,7 @@ inline const char* _DAV_DIR_ITEM(utils::DataBuf& buf, const char* src, const str
 
   char time_buf[25];
   struct tm lt;
-  strftime(time_buf, 25, DAV_PRINT_DATE_TMPL, localtime_r(&st.st_mtime, &lt));
+  strftime(time_buf, 25, DAV_PRINT_DATE_TMPL, gmtime_r(&st.st_mtime, &lt));
 
   return buf.PrintTo(DAV_DIR_LIST_TMPL, src, src, size_buf, time_buf);
 }
@@ -605,7 +606,7 @@ inline const char* _DAV_ITEM_PROP(utils::DataBuf& buf, const char* src, const st
 
   char time_buf[32];
   struct tm lt;
-  strftime(time_buf, 32, HTTP_DATE_TMPL, localtime_r(&st.st_mtime, &lt));
+  strftime(time_buf, 32, HTTP_DATE_TMPL, gmtime_r(&st.st_mtime, &lt));
 
   utils::DataBuf etag_buf(16);
   etag_buf.PrintTo("%06lX:%08lX", st.st_size & 0xffffff, st.st_mtime);
@@ -676,7 +677,7 @@ PValue<FS::path> DAVHandler::_GetHeaderDestination(void) {
   }
 
   FS::path result = _NORMALIZE_PATH(rel_path);
-  ESP_LOGI(TAG, "Destination Path = %s", result.c_str());
+  ESP_LOGD(TAG, "Destination Path = %s", result.c_str());
 
   if (result.is_relative()) {
     ESP_LOGW(TAG, "! Destination out-of-range");
@@ -820,7 +821,7 @@ esp_err_t DAVHandler::_PUT(void) {
 esp_err_t _handler_webdav(httpd_req_t* req) {
   auto handler = DAVHandler::Create(req);
   if (handler) handler->Run();
-  ESP_LOGI(TAG, "+> Heap: %d; Stack: %d", esp_get_free_heap_size(),
+  ESP_LOGD(TAG, "+> Heap: %d; Stack: %d", esp_get_free_heap_size(),
            uxTaskGetStackHighWaterMark(NULL));
   return ESP_OK;
 }
@@ -828,7 +829,7 @@ esp_err_t _handler_webdav(httpd_req_t* req) {
 }  // namespace
 
 esp_err_t register_handler_webdav(httpd_handle_t httpd) {
-  ESP_LOGI(TAG, "Register handler on %s", URI_PATTERN);
+  ESP_LOGD(TAG, "Register handler on %s", URI_PATTERN);
   httpd_uri_t handler = {
       .uri = URI_PATTERN,
       .method = HTTP_ANY,

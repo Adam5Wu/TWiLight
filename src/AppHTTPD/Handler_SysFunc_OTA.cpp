@@ -17,9 +17,10 @@
 #include "ZWUtils.hpp"
 #include "ZWAppConfig.h"
 
-#include "Interface_Private.hpp"
 #include "AppConfig/Interface.hpp"
 #include "AppEventMgr/Interface.hpp"
+
+#include "Interface.hpp"
 
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_OTA
 
@@ -123,13 +124,9 @@ esp_err_t _ota_data(httpd_req_t* req) {
     ota_in_progress_ = true;
     utils::AutoRelease ota_cleanup([&] {
       ota_in_progress_ = false;
-      if (esp_ota_end(ota_handle) == ESP_OK) {
-        if (esp_ota_set_boot_partition(ota_part) == ESP_OK) {
-          eventmgr::system_event_post(ZW_SYSTEM_EVENT_OTA_PENDING);
-          eventmgr::system_states_set(ZW_SYSTEM_STATE_OTA_PENDING);
-        } else {
-          ESP_LOGW(TAG, "Failed to set boot partition");
-        }
+      if (esp_ota_end_ex(ota_handle, true) == ESP_OK) {
+        eventmgr::system_event_post(ZW_SYSTEM_EVENT_BOOT_IMAGE_ALT);
+        eventmgr::system_states_set(ZW_SYSTEM_STATE_BOOT_IMAGE_ALT);
       } else {
         ESP_LOGW(TAG, "Failed to finalize OTA");
       }
@@ -197,8 +194,8 @@ esp_err_t _ota_toggle(const char* query_str, httpd_req_t* req) {
   if (esp_ota_set_boot_partition(*toggle_target) != ESP_OK) {
     return httpd_resp_send_custom_err(req, HTTPD_500, "Failed to toggle boot partition");
   }
-  eventmgr::system_event_post(ZW_SYSTEM_EVENT_OTA_PENDING);
-  eventmgr::system_states_set(ZW_SYSTEM_STATE_OTA_PENDING);
+  eventmgr::system_event_post(ZW_SYSTEM_EVENT_BOOT_IMAGE_ALT);
+  eventmgr::system_states_set(ZW_SYSTEM_STATE_BOOT_IMAGE_ALT);
 
   ESP_RETURN_ON_ERROR(httpd_resp_send(req, NULL, 0));
   return ESP_OK;
@@ -289,7 +286,9 @@ method_not_allowed:
 bool sysfunc_ota(const char* feature, httpd_req_t* req) {
   if (strncmp(feature, FEATURE_PREFIX, utils::STRLEN(FEATURE_PREFIX)) != 0) return false;
 
-  _handler_ota(feature + utils::STRLEN(FEATURE_PREFIX), req);
+  if (esp_err_t err = _handler_ota(feature + utils::STRLEN(FEATURE_PREFIX), req); err != ESP_OK) {
+    ESP_LOGW(TAG, "OTA request handler error: %d (0x%x)", err, err);
+  }
   return true;
 }
 

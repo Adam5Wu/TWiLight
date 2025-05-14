@@ -108,7 +108,7 @@ esp_err_t _provision_do(const AppConfig::Wifi& config) {
   }
 
   while (true) {
-    ESP_LOGI(TAG, "Initialize provision manager...");
+    ESP_LOGD(TAG, "Initialize provision manager...");
     {
       wifi_prov_mgr_config_t mgr_config = {
           .scheme = wifi_prov_scheme_softap,
@@ -124,7 +124,7 @@ esp_err_t _provision_do(const AppConfig::Wifi& config) {
       utils::AutoRelease _wifi_prov_mgr_deinit([] {
         // Always tear down and re-setup, even if we just need a new credential.
         // This is because the provision manager cannot accept a retry.
-        ESP_LOGI(TAG, "Turning down provision manager...");
+        ESP_LOGD(TAG, "Turning down provision manager...");
         wifi_prov_mgr_deinit();
       });
 
@@ -136,7 +136,7 @@ esp_err_t _provision_do(const AppConfig::Wifi& config) {
       if (config.station) {
         // Wifi station is configured, we are in a proactive provision session.
         // The Wifi station is already configured, we just need to start retrying...
-        ESP_LOGI(TAG, "Retrying current station configuration...");
+        ESP_LOGD(TAG, "Retrying current station configuration...");
         ESP_RETURN_ON_ERROR(esp_wifi_connect());
       }
 
@@ -145,7 +145,7 @@ esp_err_t _provision_do(const AppConfig::Wifi& config) {
             xEventGroupWaitBits(*provision_events, PROVISION_AUTH_FAIL | PROVISION_AUTH_PASS, false,
                                 false, PROVISION_WAIT_INTERVAL);
         if (provision_state & PROVISION_AUTH_PASS) {
-          ESP_LOGI(TAG, "Station connected!");
+          ESP_LOGD(TAG, "Station connected!");
           // Give time for the provision client to see the status
           wifi_prov_mgr_wait();
           goto prov_done;
@@ -155,7 +155,7 @@ esp_err_t _provision_do(const AppConfig::Wifi& config) {
           xEventGroupClearBits(*provision_events, PROVISION_AUTH_FAIL);
           // Give time for the provision client to see the status
           sleep(CONFIG_WIFI_PROV_AUTOSTOP_TIMEOUT);
-          ESP_LOGI(TAG, "Stopping provision...");
+          ESP_LOGD(TAG, "Stopping provision...");
           wifi_prov_mgr_stop_provisioning();
           break;
         }
@@ -189,9 +189,9 @@ prov_done:
   {
     auto new_config = config::get();
     if (new_config->wifi.station.ssid == ssid && new_config->wifi.station.password == password) {
-      ESP_LOGI(TAG, "WiFi station credential unchanged...");
+      ESP_LOGD(TAG, "WiFi station credential unchanged...");
     } else {
-      ESP_LOGI(TAG, "Storing WiFi station credential...");
+      ESP_LOGD(TAG, "Storing WiFi station credential...");
       new_config->wifi.station.ssid = std::move(ssid);
       new_config->wifi.station.password = std::move(password);
       ESP_RETURN_ON_ERROR(config::persist());
@@ -222,7 +222,7 @@ void _station_connect_event_handler(void* arg, esp_event_base_t event_base, int3
 
       case WIFI_EVENT_STA_DISCONNECTED: {
         wifi_event_sta_disconnected_t* disconnected = (wifi_event_sta_disconnected_t*)event_data;
-        ESP_LOGI(TAG, "WiFi station disconnect: %d", disconnected->reason);
+        ESP_LOGD(TAG, "WiFi station disconnect: %d", disconnected->reason);
         if (disconnected->reason == WIFI_REASON_AUTH_EXPIRE ||
             disconnected->reason == WIFI_REASON_AUTH_FAIL) {
           xEventGroupSetBits(station_events, STATION_BAD_AUTH);
@@ -262,7 +262,7 @@ esp_err_t _station_do_connect(const AppConfig::Wifi::Station& config) {
 esp_err_t _station_try_connect(const AppConfig::Wifi::Station& config) {
   wifi_ap_record_t ap_record;
   if (esp_wifi_sta_get_ap_info(&ap_record) == ESP_OK) {
-    ESP_LOGI(TAG, "Already connected to AP '%s'...", (const char*)ap_record.ssid);
+    ESP_LOGD(TAG, "Already connected to AP '%s'...", (const char*)ap_record.ssid);
     if (config.ssid == (const char*)ap_record.ssid) {
       // We must come from a finished provisioning session, which will only
       // exit after getting an IP assignment, so we just signal as such.
@@ -274,7 +274,7 @@ esp_err_t _station_try_connect(const AppConfig::Wifi::Station& config) {
       eventmgr::system_event_post(ZW_SYSTEM_EVENT_NET_STA_IP_READY);
       return ESP_OK;
     }
-    ESP_LOGI(TAG, "Different AP configured, disconnecting...");
+    ESP_LOGD(TAG, "Different AP configured, disconnecting...");
     ESP_RETURN_ON_ERROR(esp_wifi_disconnect());
   }
 
@@ -297,7 +297,7 @@ esp_err_t _station_try_connect(const AppConfig::Wifi::Station& config) {
 
   _station_do_connect(config);
 
-  ESP_LOGI(TAG, "Waiting for connection...");
+  ESP_LOGD(TAG, "Waiting for connection...");
   for (int i = 0; i < STATION_WAIT_CYCLES; i++) {
     ZW_WAIT_FOR_EVENTS(*station_events, STATION_IP_READY | STATION_BAD_AUTH, /*reset=*/false,
                        /*all=*/false, CONFIG_FREERTOS_HZ, break,
@@ -306,7 +306,7 @@ esp_err_t _station_try_connect(const AppConfig::Wifi::Station& config) {
 
   EventBits_t station_state = xEventGroupGetBits(*station_events);
   if (station_state & STATION_IP_READY) {
-    ESP_LOGI(TAG, "WiFi station connection successful");
+    ESP_LOGD(TAG, "WiFi station connection successful");
     eventmgr::system_states_set(ZW_SYSTEM_STATE_NET_STA_IP_READY);
     eventmgr::system_event_post(ZW_SYSTEM_EVENT_NET_STA_IP_READY);
   } else if (station_state & STATION_CONNECTED) {
@@ -335,9 +335,9 @@ esp_err_t _wifi_provision(const AppConfig::Wifi& config) {
   // ESP_GOTO_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_APSTA), failed);
 
   if (!config.station) {
-    ESP_LOGI(TAG, "WiFi station not configured, start provisioning...");
+    ESP_LOGD(TAG, "WiFi station not configured, start provisioning...");
   } else {
-    ESP_LOGI(TAG, "Start proactive provisioning...");
+    ESP_LOGD(TAG, "Start proactive provisioning...");
   }
 
   // We need HTTP service for provisioning.
@@ -371,13 +371,13 @@ void _station_connection_maint_handler(void* arg, esp_event_base_t event_base, i
   if (event_base == WIFI_EVENT) {
     switch (event_id) {
       case WIFI_EVENT_STA_CONNECTED:
-        ESP_LOGI(TAG, "Station connection restored");
+        ESP_LOGD(TAG, "Station connection restored");
         eventmgr::system_states_set(ZW_SYSTEM_STATE_NET_STA_RECONNECT, false);
         break;
 
       case WIFI_EVENT_STA_DISCONNECTED: {
         wifi_event_sta_disconnected_t* disconnected = (wifi_event_sta_disconnected_t*)event_data;
-        ESP_LOGI(TAG, "Station disconnected, reason: %d", disconnected->reason);
+        ESP_LOGD(TAG, "Station disconnected, reason: %d", disconnected->reason);
         eventmgr::system_states_set(ZW_SYSTEM_STATE_NET_STA_RECONNECT);
         // Re-connect after some delay.
         esp_timer_start_once(station_reconnect_timer_, STATION_RECONNECT_BACKOFF * 1000 * 1000);
@@ -408,7 +408,7 @@ esp_err_t _wifi_connect(const AppConfig::Wifi& config) {
   if (config.ap.net_provision_only) {
     if (current_mode != WIFI_MODE_STA) ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA));
   } else {
-    ESP_LOGI(TAG, "Configuring WiFi as AP + station...");
+    ESP_LOGD(TAG, "Configuring WiFi as AP + station...");
     if (current_mode != WIFI_MODE_APSTA) ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_APSTA));
 
     wifi_config_t wifi_config = {};
@@ -501,7 +501,7 @@ esp_err_t _wifi_init(void) {
   {
     auto config = config::get()->wifi;
     if (config.power_saving) {
-      ESP_LOGI(TAG, "Enable power saving...");
+      ESP_LOGD(TAG, "Enable power saving...");
       ESP_RETURN_ON_ERROR(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
     }
 
@@ -559,7 +559,7 @@ fallthrough:
 }
 
 esp_err_t init(void) {
-  ESP_LOGI(TAG, "Initializing network...");
+  ESP_LOGD(TAG, "Initializing...");
   ESP_RETURN_ON_ERROR(esp_netif_init());
   ESP_RETURN_ON_ERROR(esp_event_loop_create_default());
 

@@ -1,25 +1,34 @@
 var DEVMODE = window.location.protocol === 'file:';
 const URL_REBOOT = "/!sys/reboot?";
 
-function redirect() {
-  window.location.href = document.referrer;
+function navigate_back() {
+  history.back();
 }
 
-function reboot(boot_serial) {
-  $.get({
-    url: URL_REBOOT + $.param({ "bs": boot_serial }),
-  }).done(function () {
-    console.log("Reboot in progress...");
-    setTimeout(function () { probe_boot_serial_for(redirect, null); }, STATUS_PROBE_INTERVAL);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    console.log("Reboot failed" + (resp_text ? ": " + resp_text : "."));
-    redirect();
+function request_reboot(boot_serial) {
+  $("#page-content").text(`Requesting reboot...`);
+  probe_url_for(URL_REBOOT + $.param({ "bs": boot_serial }), function () {
+    $("#page-content").text(`Reboot in progress...`);
+    window.top.postMessage(JSON.stringify({ "reboot": boot_serial }), "*");
+    setTimeout(function () {
+      probe_url_for(URL_BOOT_SERIAL, navigate_back, function (text) {
+        $("#page-content").text(`Failed to probe boot serial: ${text}`);
+        setTimeout(function () { navigate_back(); }, PROBE_STATUS_INTERVAL);
+      });
+    }, PROBE_STATUS_INTERVAL);
+  }, function (text) {
+    $("#page-content").text(`Reboot request failed: ${text}`);
+    setTimeout(function () { navigate_back(); }, PROBE_STATUS_INTERVAL);
   });
 }
 
 $(function () {
   if (!DEVMODE) {
-    probe_boot_serial_for(reboot, null);
+    probe_url_for(URL_BOOT_SERIAL, request_reboot, function (text) {
+      $("#page-content").text(`Failed to probe boot serial: ${text}`);
+      setTimeout(function () { navigate_back(); }, PROBE_STATUS_INTERVAL);
+    });
+  } else {
+    setTimeout(function () { navigate_back(); }, PROBE_STATUS_INTERVAL);
   }
 });
