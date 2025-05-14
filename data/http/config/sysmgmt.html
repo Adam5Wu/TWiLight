@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>System Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/zw_base.css">
+  <link rel="stylesheet" href="css/zw_sysmgmt.css">
+  <script src="js/jquery-3.7.1.min.js"></script>
+  <script src="js/zw_base.js"></script>
+  <script src="js/zw_sysmgmt.js"></script>
+</head>
+
+<body>
+
+  <div id="page-container">
+    <div id="page-heading">
+      <h1>System Management</h1>
+      <hr>
+    </div>
+
+    <div id="page-content">
+      <ul class="card-space">
+        <li class="card" id="time-setup">
+          <div class="card-icon woff-icon">&#x1F557;</div>Time
+        </li>
+        <li class="card disabled" id="storage-backup">
+          <div class="card-icon woff-icon">&#x1F5AB;</div>Backup
+        </li>
+        <li class="card dropzone prog-test" id="storage-restore">
+          <input type="file" id="storage-file">
+          <label for="storage-file" id="storage-file-label">
+            <div class="card-icon woff-icon">&#x1F5D8;</div>Restore
+          </label>
+        </li>
+        <li class="card disabled" id="storage-reset">
+          <div class="card-icon woff-icon">&#x1F6E0;</div>Reset
+        </li>
+        <li class="card" id="reboot">
+          <div class="card-icon woff-icon">&#x1F5F2;</div>Reboot
+        </li>
+      </ul>
+    </div>
+  </div>
+  <iframe name="download-frame" class="hidden"></iframe>
+
+  <dialog class="config" id="config:time">
+    <div class="dlg-header">
+      System Time Setup
+    </div>
+    <div class="dlg-body config-container">
+      <fieldset id="config-ntp-client">
+        <legend>
+          <label for="config-ntp-client-enable">
+            <input type="checkbox" id="config-ntp-client-enable">
+            <span>NTP Time Sync</span>
+          </label>
+        </legend>
+        <div class="field-contents">
+          <label for="config-ntp-server-addr">
+            <span>Server:</span>
+            <input type="text" id="config-ntp-server-addr" value="pool.ntp.org">
+          </label>
+        </div>
+      </fieldset>
+      <fieldset id="config-timezone">
+        <legend>
+          <label for="config-timezone-enable">
+            <input type="checkbox" id="config-timezone-enable">
+            <span>Time Zone</span>
+          </label>
+        </legend>
+        <div class="field-contents">
+          <div class="flex-row flex-spread">
+            <select id="config-timezone-select"></select>
+            <div id="config-timezone-local-time" class="nowrap">Local Time: <span>--:--AM</span></div>
+          </div>
+          <div class="sub-params nowrap">
+            <div class="flex-row flex-spread">
+              <div>
+                <label for="config-timezone-utc-offset">
+                  <span class="align">UTC Offset:</span>
+                  <input type="text" id="config-timezone-utc-offset" value="+0:00" size="4" maxlength="4">
+                </label>
+              </div>
+              <div>
+                <label for="config-timezone-dst-adjust">
+                  <span>Daylight-Saving:</span>
+                  <input type="text" id="config-timezone-dst-adjust" value="+0:00" size="4" maxlength="4">
+                </label>
+              </div>
+            </div>
+            <div>
+              <label for="config-timezone-dst-start-month">
+                <span class="align">DST Starts:</span>
+                <select id="config-timezone-dst-start-month"> </select>
+                <select id="config-timezone-dst-start-weeknum"> </select>
+                <select id="config-timezone-dst-start-dow"> </select>
+                <select id="config-timezone-dst-start-time"> </select>
+              </label>
+            </div>
+            <div>
+              <label for="config-timezone-dst-end-month">
+                <span class="align">DST Ends:</span>
+                <select id="config-timezone-dst-end-month"> </select>
+                <select id="config-timezone-dst-end-weeknum"> </select>
+                <select id="config-timezone-dst-end-dow"> </select>
+                <select id="config-timezone-dst-end-time"> </select>
+              </label>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="submit" value="Save">
+      <input type="reset" value="Discard">
+    </form>
+  </dialog>
+
+  <dialog id="dialog">
+    <div class="dlg-body">
+      <span class="dlg-message">This is a message!</span>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="submit" value="OK">
+      <input type="reset" value="Cancel">
+    </form>
+  </dialog>
+
+</html>

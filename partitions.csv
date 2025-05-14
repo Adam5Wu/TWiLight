@@ -1,0 +1,9 @@
+# Name,   Type, SubType,  Offset,   Size,     Flags
+#boot,    ?,    ?,        0x0000,   0x8000,
+#ptable,  ?,    ?,        0x8000,   0x1000,
+image-a,  app,  ota_0,    0x9000,   0xf7000,
+ota-conf, data, ota,      0x100000, 0x2000,
+nvs,      data, nvs,      0x102000, 0x7000,
+image-b,  app,  ota_1,    0x109000, 0xf7000,
+system,   data, littlefs, 0x200000, 0x100000,
+storage,  data, littlefs, 0x300000, 0x100000,

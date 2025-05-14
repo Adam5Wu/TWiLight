@@ -1,0 +1,33 @@
+{
+  "wifi": {
+    "power_saving": true,
+    "ap": {
+      "ssid_prefix": null,
+      "password": null,
+      "net_provision_only": false
+    },
+    "station": {
+      "ssid": null,
+      "password": null
+    }
+  },
+  "dev_mode": {
+    "web_dav": true
+  },
+  "time": {
+    "baseline": "2025-05-01 10:00:00",
+    "timezone": null,
+    "ntp_server": null
+  },
+  "http_server": {
+    "root_dir": "/system/http",
+    "net_provision": {
+      "enabled": true,
+      "default_page": "/config/wifi.html"
+    },
+    "web_ota": {
+      "enabled": true,
+      "netmask": "255.255.0.0"
+    }
+  }
+}

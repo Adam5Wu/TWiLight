@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Welcome to ESP8266Base!</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    :target {
+      background-color: powderblue;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Welcome to the ESP8266Base project!</h1>
+  <hr>
+  <p>This project provides a generic framework and foundation for <em>rapid</em> IoT appliances creation.
+  <p>The following features are available <em>without writing a line of code</em>:
+  <ul>
+    <li>Out-of-box network provisioning:
+      <ul>
+        <li>Automatically enter provisioning mode out-of-box;
+        <li>Supports provisioning using the
+          <a href="https://play.google.com/store/apps/details?id=com.espressif.provsoftap" target="_blank">
+            ESP SoftAP Provisioning app</a>;
+        <li>Also offers a <a href="config/wifi.html" target="_blank">built-in Web page</a>
+          (automatically prompted using a <em>captive portal</em>);
+        <li><a name="re-provision">If the configured AP is unavailable at boot, will automatically enter
+            provisioning mode</a>;<br>
+          And if the AP recovers later, will <em>automatically</em> exit provisioning mode;
+        <li>Provisioned AP config stored as a part of <a href="#config-mgmt">config file</a>;
+      </ul>
+
+    <li>During regular servicing (after connected to an AP):
+      <ul>
+        <li>Automatic reconnect if connection to AP drops out<br>
+          For permanent AP turn-off, <a href="#re-provision">a reboot is needed to enter provisioning mode</a>;
+        <li>NTP time-sync with smooth time adjustment for small delta (&lt;10 minutes);
+        <li>Time tracking with <a href="#rtc-mgmt">RTC memory</a>, and automatic restore at (powered-through) reboots;
+        <li>Regular HTTP file serving with MIME type auto-inference for a number of built-in file extensions;<br>
+          Supports browser caching and ETag validation;
+        <li>WebDAV for interactive Web application developing;<br>
+          <em>(Can be disabled for production builds.)</em>
+      </ul>
+
+    <li>Web-based appliance management:
+      <ul>
+        <li><a href="config/ota.html" target="_blank">Firmware image update and toggle</a>.
+        <li><a href="config/sysmgmt.html" target="_blank">User data partition backup, reset and restore</a>.
+      </ul>
+  </ul>
+  <p>The following functions are offered for programmatic integration:
+  <ul>
+    <li>Separate read-only system partition and read-write user partition:
+      <ul>
+        <li>The system partition is (usually) mounted read-only for safer operation;
+        <li>Enabling WebDAV will mount the system partition read-write;
+      </ul>
+
+    <li><a name="config-mgmt">Extensible appliance configuration management API:</a>
+      <ul>
+        <li>Parsing, validation, concurrency-safe access and modification;
+        <li>Layering and delta storage of post-deployment changes (allows simple "reset-to-factory");
+      </ul>
+
+    <li>Configuration <a href="config/" target="_blank">Web page sets</a>:
+      <ul>
+        <li><em>Light & dark themed</em>, mobile responsive;
+        <li>Just plug in your app-specific configuration interface;
+      </ul>
+
+    <li><a name="rtc-mgmt">Structured RTC memory allocation and access:</a>
+      <ul>
+        <li>RTC memory can be allocated for typed data structures;<br>
+          (Access should be 4-byte aligned.)
+      </ul>
+
+    <li>High-level system events and states:
+      <ul>
+        <li>When connected to configured AP (entering regular servicing);
+        <li>When received IP address assignment from AP;
+        <li>When the AP is disconnected and being retried;
+        <li>When NTP time is received the first time after boot;
+        <li>When some appliance component encountered unexpected failure;
+      </ul>
+
+  </ul>
+
+</body>
+
+</html>
