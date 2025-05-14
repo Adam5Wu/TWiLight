@@ -15,8 +15,9 @@
     "web_dav": true
   },
   "time": {
-    "baseline": "2025-01-01 10:00:00",
-    "ntp_server": "us.pool.ntp.org"
+    "baseline": "2025-05-01 10:00:00",
+    "timezone": null,
+    "ntp_server": null
   },
   "http_server": {
     "root_dir": "/system/http",

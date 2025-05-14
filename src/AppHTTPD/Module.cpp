@@ -49,7 +49,7 @@ ServingConfig serving_config_;
 
 inline esp_err_t _cleanup() {
   if (httpd_) {
-    ESP_LOGI(TAG, "Stopping server...");
+    ESP_LOGD(TAG, "Stopping server...");
     ESP_RETURN_ON_ERROR(httpd_stop(httpd_));
     httpd_ = NULL;
   }
@@ -88,6 +88,8 @@ inline bool _is_service_needed() {
   return result;
 }
 
+std::vector<HandlerRegistrar> ext_handler_registrar_list_;
+
 inline esp_err_t _register_handlers() {
   if (serving_config_.dav_enabled) {
 #ifdef ZW_APPLIANCE_COMPONENT_WEBDAV
@@ -96,11 +98,18 @@ inline esp_err_t _register_handlers() {
     ESP_LOGW(TAG, "WebDAV is disabled in this build!");
 #endif
   }
+
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_SYSFUNC
   ESP_RETURN_ON_ERROR(register_handler_sysfunc(httpd_));
 #else
   ESP_LOGW(TAG, "Web-based system management is disabled in this build!");
 #endif
+
+  // Register external handlers
+  for (auto& registrar : ext_handler_registrar_list_) {
+    ESP_RETURN_ON_ERROR(registrar(httpd_));
+  }
+
   // Ensure the captive handler is registered the last.
   if (serving_config_.httpd) {
     ESP_RETURN_ON_ERROR(register_handler_fileserv(httpd_));
@@ -114,7 +123,7 @@ void _reconfigure(void*) {
     _snapshot_serving_config();
 
     if (_is_service_needed()) {
-      ESP_LOGI(TAG, "Initializing service...");
+      ESP_LOGD(TAG, "Initializing service...");
       httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
       httpd_config.uri_match_fn = &httpd_uri_match_wildcard;
       httpd_config.stack_size = serving_config_.dav_enabled ? HTTP_SERV_THREAD_WITH_DAV_STACK
@@ -126,10 +135,11 @@ void _reconfigure(void*) {
       // Populate additional custom data here.
       ESP_GOTO_ON_ERROR(_register_handlers(), failed);
 
-      ESP_LOGI(TAG, "Service started");
+      ESP_LOGD(TAG, "Service started");
       eventmgr::system_states_set(ZW_SYSTEM_STATE_HTTPD_READY);
+      eventmgr::system_event_post(ZW_SYSTEM_EVENT_HTTPD_READY);
     } else {
-      ESP_LOGI(TAG, "Service disabled");
+      ESP_LOGD(TAG, "Service disabled");
     }
   }
   return;
@@ -159,10 +169,15 @@ esp_err_t _init_httpd_task(void) {
 
 }  // namespace
 
+void add_ext_handler_registrar(HandlerRegistrar registrar) {
+  ext_handler_registrar_list_.push_back(registrar);
+}
+
 httpd_handle_t handle(void) { return httpd_; }
 const ServingConfig& serving_config(void) { return serving_config_; }
 
 esp_err_t init(void) {
+  ESP_LOGD(TAG, "Initializing...");
   ESP_RETURN_ON_ERROR(_init_httpd_task());
   return ESP_OK;
 }

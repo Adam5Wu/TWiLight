@@ -173,7 +173,7 @@ resp_failed:
 // i.e. the SoftAP has been set up and running.
 void captive_dns_task(void *) {
   utils::AutoReleaseRes<int> server_sock;
-  ESP_LOGI(TAG, "Configuring AP DHCP...");
+  ESP_LOGD(TAG, "Configuring AP DHCP...");
   {
     tcpip_adapter_ip_info_t ip_info;
     ESP_GOTO_ON_ERROR(tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &ip_info), failed);
@@ -184,7 +184,7 @@ void captive_dns_task(void *) {
         tcpip_adapter_set_dns_info(TCPIP_ADAPTER_IF_AP, TCPIP_ADAPTER_DNS_MAIN, &dns_addr), failed);
   }
 
-  ESP_LOGI(TAG, "Starting service...");
+  ESP_LOGD(TAG, "Starting service...");
   {
     server_sock = utils::AutoReleaseRes<int>(socket(AF_INET, SOCK_DGRAM, 0), [](int sock) {
       if (sock != -1) close(sock);
@@ -208,7 +208,7 @@ void captive_dns_task(void *) {
     }
   }
 
-  ESP_LOGI(TAG, "Listening for DNS queries...");
+  ESP_LOGD(TAG, "Listening for DNS queries...");
   while (eventmgr::system_states_peek(ZW_SYSTEM_STATE_NET_STA_IP_READY) == 0) {
     struct sockaddr_in src_addr = {};
     socklen_t src_len = sizeof(struct sockaddr_in);
@@ -220,7 +220,7 @@ void captive_dns_task(void *) {
       ESP_GOTO_ON_ERROR(_handle_request(src_addr, src_len, req, req_len, *server_sock), failed);
     }
   }
-  ESP_LOGI(TAG, "Stopping service...");
+  ESP_LOGD(TAG, "Stopping service...");
   return;
 
 failed:

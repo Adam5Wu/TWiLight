@@ -36,6 +36,10 @@
     background-image: linear-gradient(0deg, teal 28%, transparent 33%)
   }
 
+  #config-timezone option.tz-local {
+    color: azure;
+  }
+
 }
 
 @media (prefers-color-scheme: light) {
@@ -77,6 +81,10 @@
     background-image: linear-gradient(0deg, lightblue 28%, transparent 33%)
   }
 
+  #config-timezone option.tz-local {
+    color: darkslategray;
+  }
+
 }
 
 ul.card-space {
@@ -87,12 +95,14 @@ ul.card-space {
   margin: 0;
   padding: 0;
   user-select: none;
+  min-width: 40em;
 }
 
 ul.card-space li.card {
   display: inline-block;
   margin: 1em;
   padding: 1em;
+  min-width: 4.5em;
   border-radius: 1em;
   border-width: 1px;
   border-style: solid;
@@ -102,7 +112,8 @@ ul.card-space li.card {
 }
 
 ul.card-space li.card.disabled {
-  cursor: not-allowed;
+  /* cursor: not-allowed; */
+  pointer-events: none;
 }
 
 ul.card-space li.card .card-icon {
@@ -125,4 +136,32 @@ ul.card-space li.card.dropzone input {
   height: 1em;
   overflow: hidden;
   z-index: -1;
+}
+
+#config-timezone-select {
+  max-width: 16em;
+}
+
+#config-timezone option.tz-local {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+#config-timezone input[type="text"] {
+  width: 3.5em;
+  padding: 0.1em 0.3em;
+}
+
+div#config-timezone-local-time {
+  font-size: small;
+  padding: 0.2em;
+}
+
+#config-timezone label>span.align {
+  display: inline-block;
+  width: 6em;
+}
+
+input#config-timezone-custom {
+  margin: 0.5e 0;
 }

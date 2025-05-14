@@ -13,6 +13,7 @@
 
 #include "AppNetwork/Interface.hpp"
 
+#include "Interface.hpp"
 #include "Interface_Private.hpp"
 
 namespace zw::esp8266::app::httpd {
@@ -184,7 +185,7 @@ esp_err_t _handler_fileserv(httpd_req_t* req) {
 }  // namespace
 
 esp_err_t register_handler_fileserv(httpd_handle_t httpd) {
-  ESP_LOGI(TAG, "Register handler on %s", URI_PATTERN);
+  ESP_LOGD(TAG, "Register handler on %s", URI_PATTERN);
   httpd_uri_t handler = {
       .uri = URI_PATTERN,
       .method = HTTP_GET,

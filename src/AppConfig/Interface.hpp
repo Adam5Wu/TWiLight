@@ -3,8 +3,14 @@
 #define APPCONFIG_INTERFACE
 
 #include <string>
-#include <optional>
+#include <string_view>
+#include <unordered_map>
 #include <memory>
+#include <optional>
+#include <functional>
+
+#include "esp_err.h"
+#include "esp_log.h"
 
 #include "cJSON.h"
 #include "lwip/ip_addr.h"
@@ -49,7 +55,11 @@ struct AppConfig {
 
   struct Time {
     // Optional UTC time to set as the baseline when the appliance boots up.
+    // Format: YYYY-MM-DD HH:MM:SS
     std::string baseline;
+
+    // POSIX TZ string for timezone specification
+    std::string timezone;
 
     // Optional NTP server address to sync time from (if connected to AP).
     std::string ntp_server;
@@ -137,15 +147,165 @@ extern XAppConfig get(void);
 // Write the current config into the file system.
 extern esp_err_t persist(void);
 
+//--------------------------
+// Data field parsing utils
+//--------------------------
+
+// If JSON field is absent, do not touch `config_field`;
+// If JSON field data is valid, overwrite `config_field`;
+// If JSON field data is malformed:
+// - do not touch `config_field` if `strict` is false;
+// - Otherwise returns error.
+template <typename T>
+extern esp_err_t parse_and_assign_field(const cJSON* json, const char* field, T& config_field,
+                                        utils::DataOrError<T> (*parser)(cJSON*),
+                                        bool strict = false) {
+  cJSON* item = cJSON_GetObjectItem(json, field);
+  if (item != NULL) {
+    if (auto result = parser(item); result) {
+      config_field = std::move(*result);
+    } else {
+      if (strict) return result.error();
+    }
+  }
+  return ESP_OK;
+}
+
+extern utils::DataOrError<std::string> string_parser(cJSON* item);
+extern utils::DataOrError<bool> bool_parser(cJSON* item);
+
+template <typename T, utils::DataOrError<T> (*decoder)(const char*)>
+extern utils::DataOrError<T> string_decoder(cJSON* item) {
+  return cJSON_IsString(item) ? decoder(cJSON_GetStringValue(item))
+                              : utils::DataOrError<T>(ESP_ERR_INVALID_ARG);
+}
+
+#define DEFINE_DECODE_UTIL(type, func_name) \
+  extern utils::DataOrError<type> decode_##func_name(const char* str)
+
+DEFINE_DECODE_UTIL(size_t, size);
+DEFINE_DECODE_UTIL(std::optional<ip_addr_t>, netmask);
+
+#undef DEFINE_DECODE_UTIL
+
+template <typename T, const std::unordered_map<std::string_view, T>& map>
+utils::DataOrError<T> decode_enum(const char* str) {
+  auto it = map.find(str);
+  if (it == map.end()) return ESP_ERR_INVALID_ARG;
+  return T(it->second);
+}
+
 // Parse a cJSON object into a config object
 #define DEFINE_PARSE_FUNC(type, func_name) \
-  extern esp_err_t parse_##func_name(const cJSON* json, type& config)
+  extern esp_err_t parse_##func_name(const cJSON* json, type& config, bool strict = false)
 
 DEFINE_PARSE_FUNC(AppConfig::Wifi::Station, wifi_station);
+DEFINE_PARSE_FUNC(AppConfig::Time, time);
 // DEFINE_PARSE_FUNC(AppConfig::Wifi::Ap, wifi_ap);
-// DEFINE_PARSE_FUNC(AppConfig::Time, time);
-
 #undef DEFINE_PARSE_FUNC
+
+//------------------------------
+// Data field marshalling utils
+//------------------------------
+
+esp_err_t allocate_container(utils::AutoReleaseRes<cJSON*>& container);
+
+// The configs are always marshalled on the differences from a base.
+// If full marshalling is desired, pass an empty base.
+//
+// The marshal function returns:
+// - NULL if no update is detected;
+// - A cJSON item for marshalled update;
+// - Error code if something went wrong;
+template <typename T>
+extern esp_err_t diff_and_marshal_field(utils::AutoReleaseRes<cJSON*>& container, const char* field,
+                                        const T& base, const T& update,
+                                        utils::DataOrError<cJSON*> (*marshal)(const T&, const T&)) {
+  ASSIGN_OR_RETURN(auto val, marshal(base, update));
+  if (val != NULL) {
+    utils::AutoReleaseRes<cJSON*> item(std::move(val), [](cJSON* json) {
+      if (json != NULL) cJSON_Delete(json);
+    });
+    if (esp_err_t err = allocate_container(container); err != ESP_OK) return err;
+    cJSON_AddItemToObject(*container, field, item.Drop());
+  }
+  return ESP_OK;
+}
+
+template <typename T, typename MarshalFuncType>
+extern esp_err_t marshal_config_obj(utils::AutoReleaseRes<cJSON*>& container, const char* field,
+                                    const T& base, const T& update,
+                                    const MarshalFuncType& marshal) {
+  utils::AutoReleaseRes<cJSON*> _node;
+  if (esp_err_t err = marshal(_node, base, update); err != ESP_OK) return err;
+  if (*_node != NULL) {
+    if (esp_err_t err = allocate_container(container); err != ESP_OK) return err;
+    cJSON_AddItemToObject(*container, field, _node.Drop());
+  }
+  return ESP_OK;
+}
+
+extern utils::DataOrError<cJSON*> string_marshal(const std::string& base,
+                                                 const std::string& update);
+extern utils::DataOrError<cJSON*> bool_marshal(const bool& value, const bool& update);
+
+template <typename T, std::string (*encoder)(const T&)>
+extern utils::DataOrError<cJSON*> string_encoder(const T& base, const T& update) {
+  auto base_value = encoder(base);
+  auto update_value = encoder(update);
+  if (base_value == update_value) return (cJSON*)NULL;
+  if (cJSON* result = cJSON_CreateString(update_value.c_str())) return result;
+  return ESP_ERR_NO_MEM;
+}
+
+#define DEFINE_ENCODE_UTIL(type, func_name) extern std::string encode_##func_name(const type&)
+
+DEFINE_ENCODE_UTIL(size_t, size);
+DEFINE_ENCODE_UTIL(std::optional<ip_addr_t>, netmask);
+
+#undef DEFINE_ENCODE_UTIL
+
+template <typename T, const std::unordered_map<T, std::string_view>& map>
+std::string encode_enum(const T& val) {
+  auto it = map.find(val);
+  if (it == map.end()) return "?";
+  return std::string(it->second);
+}
+
+// Marshal a config object into a cJSON object
+#define DEFINE_MARSHAL_FUNC(type, func_name) \
+  extern esp_err_t marshal_##func_name(utils::AutoReleaseRes<cJSON*>& json, type& config)
+
+DEFINE_MARSHAL_FUNC(AppConfig::Time, time);
+// DEFINE_MARSHAL_FUNC(AppConfig::Wifi::Ap, wifi_ap);
+#undef DEFINE_MARSHAL_FUNC
+
+struct GenericFieldHandler {
+  std::function<esp_err_t(const cJSON*, AppConfig&, bool)> parse;
+  std::function<void(const AppConfig&)> log;
+  std::function<esp_err_t(utils::AutoReleaseRes<cJSON*>&, const AppConfig&, const AppConfig&)>
+      marshal;
+};
+extern esp_err_t register_field(const std::string& key, GenericFieldHandler&& handler);
+
+template <typename ConfigType>
+esp_err_t register_custom_field(
+    const std::string& key, ConfigType& (*field_getter)(AppConfig& config),
+    esp_err_t (*parse)(const cJSON*, ConfigType&, bool), void (*log)(const ConfigType&),
+    esp_err_t (*marshal)(utils::AutoReleaseRes<cJSON*>&, const ConfigType&, const ConfigType&)) {
+  return register_field(
+      key,
+      GenericFieldHandler{
+          [=](const cJSON* json, AppConfig& config, bool strict) {
+            return parse(json, field_getter(config), strict);
+          },
+          [=](const AppConfig& config) { log(field_getter(const_cast<AppConfig&>(config))); },
+          [=](utils::AutoReleaseRes<cJSON*>& json, const AppConfig base, const AppConfig& update) {
+            return marshal(json, field_getter(const_cast<AppConfig&>(base)),
+                           field_getter(const_cast<AppConfig&>(update)));
+          },
+      });
+}
 
 }  // namespace zw::esp8266::app::config
 

@@ -17,6 +17,8 @@
 #include "AppConfig/Interface.hpp"
 #include "AppNetwork/Interface.hpp"
 
+#include "Interface.hpp"
+
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_NET_PROVISION
 
 #define PROV_APLIST_MAX_LEN 16
@@ -102,23 +104,10 @@ esp_err_t _prov_sta_config_set(httpd_req_t* req) {
   if (req->content_len > 26 + 32 + 32) {
     return httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "Configuration oversize");
   }
-  std::string config_str(req->content_len, '\0');
-  if (int recv_len = httpd_req_recv(req, &config_str.front(), config_str.length() + 1);
-      recv_len != req->content_len) {
-    ESP_LOGW(TAG, "Post receive short, expect %d, got %d", req->content_len, recv_len);
-    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Not all data received");
-  }
-  // Skip checking "Content-Type", just try parse as JSON.
-  utils::AutoReleaseRes<cJSON*> json(cJSON_ParseWithOpts(config_str.data(), NULL, true),
-                                     [](cJSON* json) {
-                                       if (json) cJSON_Delete(json);
-                                     });
-  if (*json == nullptr) {
-    ESP_LOGW(TAG, "Failed to parse data (around byte %d)", cJSON_GetErrorPtr() - config_str.data());
-    ESP_LOG_BUFFER_HEXDUMP(TAG, cJSON_GetErrorPtr() - 16, 32, ESP_LOG_DEBUG);
-    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload failed to parse as JSON");
-  }
-  AppConfig::Wifi::Station sta_config;
+  utils::AutoReleaseRes<cJSON*> json;
+  ESP_RETURN_ON_ERROR(receive_json(req, json));
+
+  AppConfig::Wifi::Station sta_config = config::get()->wifi.station;
   if (config::parse_wifi_station(*json, sta_config) != ESP_OK) {
     return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload failed to parse as config");
   }
@@ -126,7 +115,6 @@ esp_err_t _prov_sta_config_set(httpd_req_t* req) {
   if (config::persist() != ESP_OK) {
     return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to persist config");
   }
-
   ESP_RETURN_ON_ERROR(httpd_resp_set_status(req, HTTPD_204));
   ESP_RETURN_ON_ERROR(httpd_resp_send(req, NULL, 0));
   network::ApplyStationConfig();
@@ -155,7 +143,7 @@ esp_err_t _handler_provision(const char* feature, httpd_req_t* req) {
       }
     } else if (strcmp(feature, PROV_STA_CONFIG) == 0) {
       switch (req->method) {
-        case HTTP_POST:
+        case HTTP_PUT:
           return _prov_sta_config_set(req);
         default:
           goto method_not_allowed;
@@ -174,7 +162,10 @@ method_not_allowed:
 bool sysfunc_provision(const char* feature, httpd_req_t* req) {
   if (strncmp(feature, FEATURE_PREFIX, utils::STRLEN(FEATURE_PREFIX)) != 0) return false;
 
-  _handler_provision(feature + utils::STRLEN(FEATURE_PREFIX), req);
+  if (esp_err_t err = _handler_provision(feature + utils::STRLEN(FEATURE_PREFIX), req);
+      err != ESP_OK) {
+    ESP_LOGW(TAG, "Provisioning request handler error: %d (0x%x)", err, err);
+  }
   return true;
 }
 

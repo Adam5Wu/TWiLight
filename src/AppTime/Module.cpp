@@ -11,11 +11,14 @@
 #include "freertos/event_groups.h"
 
 #include "lwip/inet.h"
-#include "lwip/apps/sntp.h"
 
 #include "ZWUtils.hpp"
 #include "ZWAppConfig.h"
 #include "ZWAppUtils.hpp"
+
+#ifdef ZW_APPLIANCE_COMPONENT_TIME_SNTP
+#include "lwip/apps/sntp.h"
+#endif
 
 #include "AppStorage/Interface.hpp"
 #include "AppEventMgr/Interface.hpp"
@@ -55,21 +58,21 @@ std::string _print_time(const timeval& tv) {
   return time_str;
 }
 
-void _log(void) {
-  struct timeval tv;
-  if (gettimeofday(&tv, NULL) != 0) {
-    ESP_LOGW(TAG, "Unable to get current time");
-    return;
-  }
-  std::string time_str = _print_time(tv);
-  ESP_LOGI(TAG, "Current time: %s", time_str.c_str());
-}
-
+// This function will only adjust time forward
 inline esp_err_t _rebase_time(const timeval& base) {
-  return settimeofday(&base, NULL) != 0 ? ESP_FAIL : ESP_OK;
+  struct timeval cur_time;
+  if (gettimeofday(&cur_time, NULL) != 0) {
+    ESP_LOGW(TAG, "Unable to get current time");
+    return ESP_FAIL;
+  }
+  if (cur_time.tv_sec < base.tv_sec ||
+      (cur_time.tv_sec == base.tv_sec && cur_time.tv_usec < base.tv_usec)) {
+    return settimeofday(&base, NULL) != 0 ? ESP_FAIL : ESP_OK;
+  }
+  return ESP_OK;
 }
 
-esp_err_t _settime_from_rtcmem(void) {
+esp_err_t _rebase_time_from_rtcmem(void) {
   // The RTC counter was always reset at boot, so there is no good way to find
   // out time elapsed since the last checkpoint (before reset / deep sleep).
   //
@@ -82,40 +85,45 @@ esp_err_t _settime_from_rtcmem(void) {
   return _rebase_time(rtc_data_->last_known);
 }
 
-esp_err_t _settime_from_config(void) {
-  auto config = config::get()->time;
-
-  const std::string& base_str = config.baseline;
-  if (base_str.empty()) {
-    ESP_LOGW(TAG, "Baseline time is not configured");
+esp_err_t _rebase_time_from_string(const std::string& time_str) {
+  if (time_str.empty()) {
+    ESP_LOGW(TAG, "Empty time specifier");
     return ESP_ERR_NOT_FOUND;
   }
 
   struct tm base_tm = {};
-  if (strptime(base_str.c_str(), "%F %T", &base_tm) == NULL) {
-    ESP_LOGW(TAG, "Baseline time specifier '%s' failed to parse", base_str.c_str());
+  if (strptime(time_str.c_str(), "%F %T", &base_tm) == NULL) {
+    ESP_LOGW(TAG, "Time specifier '%s' failed to parse", time_str.c_str());
     return ESP_ERR_INVALID_ARG;
   }
 
   timeval base{.tv_sec = mktime(&base_tm), .tv_usec = 0};
   if (base.tv_sec == (time_t)-1) {
-    ESP_LOGW(TAG, "Baseline time '%s' failed to convert", base_str.c_str());
+    ESP_LOGW(TAG, "Time specifier '%s' failed to convert", time_str.c_str());
     return ESP_ERR_INVALID_ARG;
   }
 
   return _rebase_time(base);
 }
 
-esp_err_t _boot_settime(void) {
-  if (rtc_data_->last_known.tv_sec) {
-    ESP_LOGI(TAG, "Restoring time from RTC...");
-    ESP_RETURN_ON_ERROR(_settime_from_rtcmem());
+esp_err_t _rebase_time_from_config(void) {
+  auto config = config::get()->time;
+  if (!config.baseline.empty()) {
+    return _rebase_time_from_string(config.baseline);
   } else {
-    ESP_LOGI(TAG, "RTC stored time not available, checking config...");
-    ESP_RETURN_ON_ERROR(_settime_from_config());
+    ESP_LOGW(TAG, "Baseline time not configured.");
+    return ESP_OK;
   }
+}
 
-  _log();
+esp_err_t _boot_rebase_time(void) {
+  if (rtc_data_->last_known.tv_sec) {
+    ESP_LOGD(TAG, "Restoring time from RTC...");
+    ESP_RETURN_ON_ERROR(_rebase_time_from_rtcmem());
+  } else {
+    ESP_LOGD(TAG, "RTC stored time not available, checking config...");
+    ESP_RETURN_ON_ERROR(_rebase_time_from_config());
+  }
   return ESP_OK;
 }
 
@@ -142,7 +150,7 @@ void _rtc_time_tracker(void) {
 
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_SNTP
 
-std::string serving_servername;
+std::string serving_ntp_server;
 
 void _sntp_sync_event(struct timeval* tv, int64_t delta) {
   std::string time_str = _print_time(*tv);
@@ -152,19 +160,18 @@ void _sntp_sync_event(struct timeval* tv, int64_t delta) {
 }
 
 void _sntp_config(const std::string& ntp_server) {
-  if (sntp_enabled()) return;
+  ESP_LOGD(TAG, "Starting NTP service...");
+  // NTP name resolution is an async process, persist the name string.
+  ESP_LOGI(TAG, "Using NTP server: %s", ntp_server.c_str());
+  serving_ntp_server = ntp_server;
 
   // Try parse input as IPv4 string
   ip_addr_t server_addr;
   server_addr.addr = inet_addr(ntp_server.c_str());
   if (server_addr.addr != INADDR_NONE) {
-    ESP_LOGI(TAG, "Starting NTP service with server address: %s", ntp_server.c_str());
     sntp_setserver(0, &server_addr);
   } else {
-    ESP_LOGI(TAG, "Starting NTP service with server name: %s", ntp_server.c_str());
-    // This is an async process, we must persist the name string.
-    serving_servername = ntp_server;
-    sntp_setservername(0, serving_servername.c_str());
+    sntp_setservername(0, serving_ntp_server.c_str());
   }
   sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
   sntp_set_time_sync_notification_cb(_sntp_sync_event);
@@ -184,6 +191,7 @@ void _time_task(TimerHandle_t) {
       soc_restore_local_irq(flag);
     }
     ESP_LOGD(TAG, "Delta = %dms", (uint32_t)(delta / 1000));
+    eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_ALIGNED, delta < 1000000);
   }
 
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
@@ -194,7 +202,7 @@ void _time_task(TimerHandle_t) {
                                     ZW_SYSTEM_STATE_TIME_NTP_TRACKING)) {
     auto config = config::get()->time;
     if (config.ntp_server.empty()) {
-      ESP_LOGI(TAG, "NTP service not configured");
+      ESP_LOGD(TAG, "NTP service not configured");
       eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_NTP_DISABLED);
     } else {
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_SNTP
@@ -212,7 +220,7 @@ void _time_task(TimerHandle_t) {
 }
 
 esp_err_t _init_time_task(void) {
-  ESP_LOGI(TAG, "Starting time task");
+  ESP_LOGD(TAG, "Starting time task...");
 
   TimerHandle_t time_task_handle_;
   ESP_RETURN_ON_ERROR((time_task_handle_ = xTimerCreate("zw_time_maint", CONFIG_FREERTOS_HZ, pdTRUE,
@@ -226,13 +234,46 @@ esp_err_t _init_time_task(void) {
   return ESP_OK;
 }
 
+void _log(void) {
+  struct timeval tv;
+  if (gettimeofday(&tv, NULL) != 0) {
+    ESP_LOGW(TAG, "Unable to get current time");
+    return;
+  }
+  std::string time_str = _print_time(tv);
+  ESP_LOGI(TAG, "Current time: %s", time_str.c_str());
+}
+
+esp_err_t _set_timezone(const std::string& tz) {
+  ESP_LOGD(TAG, "Setting timezone data: %s", tz.c_str());
+  if (setenv("TZ", tz.c_str(), 1) != 0) {
+    ESP_LOGW(TAG, "Failed to set timezone data");
+    return ESP_FAIL;
+  }
+  tzset();
+  _log();
+  return ESP_OK;
+}
+
+esp_err_t _boot_settimezone(void) {
+  auto config = config::get()->time;
+  if (!config.timezone.empty()) {
+    ESP_RETURN_ON_ERROR(_set_timezone(config.timezone));
+  } else {
+    ESP_LOGD(TAG, "Timezone is not configured");
+    _log();
+  }
+  return ESP_OK;
+}
+
 esp_err_t _init_time() {
   rtc_data_ = storage::rtcmem_alloc<BootRecord>();
   if (!rtc_data_) {
     ESP_LOGE(TAG, "Failed to allocate RTC memory...");
     return ESP_ERR_NO_MEM;
   }
-  ESP_RETURN_ON_ERROR(_boot_settime());
+  ESP_RETURN_ON_ERROR(_boot_rebase_time());
+  ESP_RETURN_ON_ERROR(_boot_settimezone());
 
 // Initialize sub-system state
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
@@ -248,8 +289,46 @@ esp_err_t _init_time() {
 
 }  // namespace
 
+esp_err_t RefreshConfig(void) {
+  AppConfig::Time config = config::get()->time;
+
+  // Apply baseline time update
+  if (!config.baseline.empty()) {
+    ESP_LOGD(TAG, "Applying baseline time...");
+    ESP_RETURN_ON_ERROR(_rebase_time_from_string(config.baseline));
+  }
+
+  // Apply NTP server config
+  if (config.ntp_server.empty()) {
+    if (!serving_ntp_server.empty()) {
+      serving_ntp_server.clear();
+      ESP_LOGI(TAG, "Stopping NTP service...");
+      sntp_stop();
+      eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_NTP_DISABLED);
+      eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_NTP_TRACKING, false);
+    }
+  } else {
+    if (config.ntp_server != serving_ntp_server) {
+      eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_NTP_TRACKING, false);
+      eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_NTP_DISABLED, false);
+      _sntp_config(config.ntp_server);
+    }
+  }
+
+  // Apply timezone update
+  if (config.timezone.empty()) {
+    ESP_RETURN_ON_ERROR(_set_timezone("UTC0"));
+  } else {
+    if (config.timezone != getenv("TZ")) {
+      ESP_RETURN_ON_ERROR(_set_timezone(config.timezone));
+    }
+  }
+
+  return ESP_OK;
+}
+
 esp_err_t init(void) {
-  ESP_LOGI(TAG, "Initializing time...");
+  ESP_LOGD(TAG, "Initializing...");
   ESP_RETURN_ON_ERROR(_init_time());
   ESP_RETURN_ON_ERROR(_init_time_task());
   return ESP_OK;

@@ -30,7 +30,7 @@ function file_select(evt) {
 }
 
 function bad_fw_data_message(detail) {
-  return `Not a firmware image or corrupted data${detail ? ":<p>" + detail : "."}`;
+  return `<p>Not a firmware image or corrupted data${detail ? ":<p>" + detail : "."}`;
 }
 
 function process_fw_data(evt) {
@@ -71,10 +71,10 @@ function process_fw_data(evt) {
   const image_idf = decoder.decode(image_idf_view);
   console.log("Image IDF version: ", image_idf);
 
-  var prompt_msg = `Please confirm updating firmware to:
-<p class='center'>${image_name} ${image_version}
-<span class='nowrap'>(build time ${image_date} ${image_time}</span>`;
-  op_confirm_prompt(prompt_msg, send_fw_data, fw_data);
+  var prompt_msg = `<p>Please confirm updating firmware to:
+    <p class='center'>${image_name} ${image_version}
+    <span class='nowrap'>(build time ${image_date} ${image_time}</span>`;
+  confirm_prompt(prompt_msg, send_fw_data, { data: fw_data });
 }
 
 function send_progress(evt) {
@@ -178,8 +178,8 @@ function select_fw(evt) {
   if ('next' in fw_info) return;
 
   if ('image_name' in fw_info) {
-    var prompt_message = "Toggle next boot to:<p class='center'>" + fw_version_display_text(fw_info);
-    op_confirm_prompt(prompt_message, fw_toggle_proceed, fw_info['index']);
+    var prompt_message = "<p>Toggle next boot to:<p class='center'>" + fw_version_display_text(fw_info);
+    confirm_prompt(prompt_message, fw_toggle_proceed, { data: fw_info['index'] });
   }
 }
 

@@ -138,21 +138,13 @@ form#wifi-form table {
   margin: 0.5em auto;
 }
 
-form#wifi-form table td.vert-label {
-  width: 3em;
+form#wifi-form label {
+  display: block;
 }
 
 form#wifi-form input[type="text"],
 form#wifi-form input[type="password"] {
   width: 95%;
-}
-
-form#wifi-form span#password-wrap {
-  white-space: nowrap;
-}
-
-form#wifi-form span#password-wrap {
-  white-space: nowrap;
 }
 
 form#wifi-form input#reveal-passwd {
