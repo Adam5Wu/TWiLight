@@ -3,8 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "cJSON.h"
-
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -78,7 +76,7 @@ bool sysfunc_boot_serial(const char* feature, httpd_req_t* req) {
       break;
 
     default:
-      httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "Feature does not accept this method");
+      return false;
   }
   return true;
 }
@@ -115,38 +113,52 @@ bool sysfunc_reboot(const char* feature, httpd_req_t* req) {
         break;
 
       default:
-        httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED,
-                            "Feature does not accept this method");
+        return false;
     }
   }
   return true;
 }
 
 inline constexpr char FEATURE_STORAGE[] = "/storage";
+inline constexpr char PARAM_TYPE[] = "type";
+inline constexpr char TYPE_QUERY[] = "%3F";  // '?'
+inline constexpr char TYPE_USER[] = "user";
+inline constexpr char TYPE_SYSTEM[] = "system";
 
 inline constexpr char HTTP_MIME_BINARY[] = "application/octet-stream";
 inline constexpr char HTTP_HEADER_CONTENT_LENGTH[] = "Content-Length";
 inline constexpr char HTTP_HEADER_CONTENT_DISPOSITION[] = "Content-Disposition";
 inline constexpr char HTTP_HEADER_CONTENT_DISPOSITION_VALUE_TMPL[] =
-    "attachment; filename=\"storage_%d.littlefs\"";
+    "attachment; filename=\"" _ZW_APPLIANCE_NAME "_%d.littlefs\"";
 
 inline constexpr char HTTPD_409[] = "409 Conflict";
 
-bool storage_op_in_progress_ = false;
+esp_err_t _storage_cap(httpd_req_t* req) {
+  std::string storage_cap = "[";
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_USER_PART
+  storage_cap += R"json("user")json";
+#endif
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_SYS_PART
+  if (storage_cap.length() > 1) storage_cap += ",";
+  storage_cap += R"json("system")json";
+#endif
+  storage_cap += "]";
 
-esp_err_t _storage_dump(const char* query_frag, httpd_req_t* req) {
-  if (storage_op_in_progress_) {
-    httpd_resp_send_custom_err(req, HTTPD_409, "Storage operation in progress");
+  ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, HTTPD_TYPE_JSON));
+  ESP_RETURN_ON_ERROR(httpd_resp_send(req, storage_cap.data(), storage_cap.length()));
+  return ESP_OK;
+}
+
+esp_err_t _storage_dump(httpd_req_t* req, const std::string& type) {
+  std::unique_ptr<storage::PartitionXA> accessor;
+  if (type == TYPE_USER) {
+    ASSIGN_OR_RETURN(
+        accessor, storage::partition_access(ZW_STORAGE_PART_LABEL, ZW_STORAGE_MOUNT_POINT, false));
+    // Dumping system partition is not supported
+  } else {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid storage type");
     return ESP_OK;
   }
-  storage_op_in_progress_ = true;
-  utils::AutoRelease storage_cleanup([&] { storage_op_in_progress_ = false; });
-
-  if (*query_frag != '\0') {
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Unexpected query fragment");
-    return ESP_OK;
-  }
-  ASSIGN_OR_RETURN(auto accessor, storage::data_partition_access(false));
 
   char size_buf[10];
   snprintf(size_buf, 10, "%d", accessor->sectors() * SPI_FLASH_SEC_SIZE);
@@ -168,15 +180,19 @@ esp_err_t _storage_dump(const char* query_frag, httpd_req_t* req) {
   return httpd_resp_send_chunk(req, NULL, 0);
 }
 
-esp_err_t _storage_restore(httpd_req_t* req) {
-  if (storage_op_in_progress_) {
-    httpd_resp_send_custom_err(req, HTTPD_409, "Storage operation in progress");
+esp_err_t _storage_restore(httpd_req_t* req, const std::string& type) {
+  std::unique_ptr<storage::PartitionXA> accessor;
+  if (type == TYPE_USER) {
+    ASSIGN_OR_RETURN(
+        accessor, storage::partition_access(ZW_STORAGE_PART_LABEL, ZW_STORAGE_MOUNT_POINT, true));
+  } else if (type == TYPE_SYSTEM) {
+    ASSIGN_OR_RETURN(accessor,
+                     storage::partition_access(ZW_SYSTEM_PART_LABEL, ZW_SYSTEM_MOUNT_POINT, true));
+  } else {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid storage type");
     return ESP_OK;
   }
-  storage_op_in_progress_ = true;
-  utils::AutoRelease storage_cleanup([&] { storage_op_in_progress_ = false; });
 
-  ASSIGN_OR_RETURN(auto accessor, storage::data_partition_access(true));
   size_t ota_data_len = req->content_len;
   if (ota_data_len > accessor->sectors() * SPI_FLASH_SEC_SIZE) {
     httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "Storage partition oversize");
@@ -208,15 +224,17 @@ esp_err_t _storage_restore(httpd_req_t* req) {
   return ESP_OK;
 }
 
-esp_err_t _storage_reset(httpd_req_t* req) {
-  if (storage_op_in_progress_) {
-    httpd_resp_send_custom_err(req, HTTPD_409, "Storage operation in progress");
+esp_err_t _storage_reset(httpd_req_t* req, const std::string& type) {
+  std::unique_ptr<storage::PartitionXA> accessor;
+  if (type == TYPE_USER) {
+    ASSIGN_OR_RETURN(
+        accessor, storage::partition_access(ZW_STORAGE_PART_LABEL, ZW_STORAGE_MOUNT_POINT, true));
+    // Erasing system partition is not supported
+  } else {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid storage type");
     return ESP_OK;
   }
-  storage_op_in_progress_ = true;
-  utils::AutoRelease storage_cleanup([&] { storage_op_in_progress_ = false; });
 
-  ASSIGN_OR_RETURN(auto accessor, storage::data_partition_access(true));
   // Erase the first five sectors
   utils::DataBuf erase_data(SPI_FLASH_SEC_SIZE);
   for (size_t idx = 0; idx < std::min(5U, accessor->sectors()); idx++) {
@@ -230,37 +248,63 @@ esp_err_t _storage_reset(httpd_req_t* req) {
   return ESP_OK;
 }
 
+bool storage_op_in_progress_ = false;
+
 bool sysfunc_storage(const char* feature, httpd_req_t* req) {
   if (strncmp(feature, FEATURE_STORAGE, utils::STRLEN(FEATURE_STORAGE)) != 0) return false;
+
+  if (storage_op_in_progress_) {
+    httpd_resp_send_custom_err(req, HTTPD_409, "Storage operation in progress");
+    return ESP_OK;
+  }
+  storage_op_in_progress_ = true;
+  utils::AutoRelease storage_cleanup([&] { storage_op_in_progress_ = false; });
+
   const char* query_frag = feature + utils::STRLEN(FEATURE_STORAGE);
+  if (!_check_boot_serial(query_frag, req)) return true;
+
+  auto storage_type = query_parse_param(query_frag, PARAM_TYPE, 8);
+  if (!storage_type) {
+    ESP_LOGW(TAG, "Storage type parameter missing or invalid");
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing or invalid parameter");
+    return true;
+  }
 
   switch (req->method) {
     case HTTP_GET:
-      if (_storage_dump(query_frag, req) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to dump storage");
+      if (*storage_type == TYPE_QUERY) {
+        if (_storage_cap(req) != ESP_OK)
+          httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                              "Error checking storage capability");
+        return true;
+      } else {
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_USER_PART
+        if (_storage_dump(req, *storage_type) != ESP_OK)
+          httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to dump storage");
+        return true;
+#endif
       }
       break;
 
     case HTTP_PUT:
-      if (_check_boot_serial(query_frag, req)) {
-        if (_storage_restore(req) != ESP_OK) {
-          httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to restore storage");
-        }
-      }
+#if defined(ZW_APPLIANCE_COMPONENT_WEB_USER_PART) || defined(ZW_APPLIANCE_COMPONENT_WEB_SYS_PART)
+      if (_storage_restore(req, *storage_type) != ESP_OK)
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to restore storage");
+      return true;
+#else
       break;
+#endif
 
     case HTTP_DELETE:
-      if (_check_boot_serial(query_frag, req)) {
-        if (_storage_reset(req) != ESP_OK) {
-          httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to reset storage");
-        }
-      }
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_USER_PART
+      if (_storage_reset(req, *storage_type) != ESP_OK)
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to reset storage");
+      return true;
+#else
       break;
-
-    default:
-      httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "Feature does not accept this method");
+#endif
   }
-  return true;
+  return false;
 }
 
 const std::vector<SysFuncHandler> subfunc_ = {
@@ -281,48 +325,12 @@ esp_err_t _handler_sysfunc(httpd_req_t* req) {
   }
 
   for (const auto& subfunc : subfunc_) {
-    if (subfunc(feature, req)) {
-      return ESP_OK;
-    }
+    if (subfunc(feature, req)) return ESP_OK;
   }
   return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Feature not available");
 }
 
 }  // namespace
-
-esp_err_t send_json(httpd_req_t* req, const cJSON* json) {
-  utils::AutoReleaseRes<char*> json_str(cJSON_Print(json), [](char* data) {
-    if (data) cJSON_free(data);
-  });
-  if (*json_str == nullptr) {
-    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to print JSON data");
-  }
-
-  ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, HTTPD_TYPE_JSON));
-  ESP_RETURN_ON_ERROR(httpd_resp_send(req, *json_str, HTTPD_RESP_USE_STRLEN));
-
-  return ESP_OK;
-}
-
-esp_err_t receive_json(httpd_req_t* req, utils::AutoReleaseRes<cJSON*>& json) {
-  std::string config_str(req->content_len, '\0');
-  if (int recv_len = httpd_req_recv(req, &config_str.front(), config_str.length() + 1);
-      recv_len != req->content_len) {
-    ESP_LOGW(TAG, "Receive short, expect %d, got %d", req->content_len, recv_len);
-    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Not all data received");
-  }
-  // Skip checking "Content-Type", just try parse as JSON.
-  json = utils::AutoReleaseRes<cJSON*>(cJSON_ParseWithOpts(config_str.data(), NULL, true),
-                                       [](cJSON* data) {
-                                         if (data) cJSON_Delete(data);
-                                       });
-  if (*json == nullptr) {
-    ESP_LOGW(TAG, "Failed to parse data (around byte %d)", cJSON_GetErrorPtr() - config_str.data());
-    ESP_LOG_BUFFER_HEXDUMP(TAG, cJSON_GetErrorPtr() - 16, 32, ESP_LOG_DEBUG);
-    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload failed to parse as JSON");
-  }
-  return ESP_OK;
-}
 
 esp_err_t register_handler_sysfunc(httpd_handle_t httpd) {
   ESP_RETURN_ON_ERROR(init_boot_serial_());

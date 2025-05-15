@@ -56,9 +56,9 @@ esp_err_t _fs_mount(const char *mount, const char *part_label, bool auto_format,
   return ESP_OK;
 }
 
-class DataPartitionXAImpl : public DataPartitionXA, public utils::AutoRelease {
+class PartitionXAImpl : public PartitionXA, public utils::AutoRelease {
  public:
-  DataPartitionXAImpl(utils::AutoRelease &&vfs_lock_releaser, const esp_partition_t *part)
+  PartitionXAImpl(utils::AutoRelease &&vfs_lock_releaser, const esp_partition_t *part)
       : utils::AutoRelease(std::move(vfs_lock_releaser)), part_(part) {
     assert(part != nullptr && (part->address % SPI_FLASH_SEC_SIZE == 0) &&
            (part->size % SPI_FLASH_SEC_SIZE == 0));
@@ -91,8 +91,14 @@ esp_err_t init(void) {
 
   ESP_LOGD(TAG, "Mounting storage partition...");
   ESP_RETURN_ON_ERROR(_fs_mount(ZW_STORAGE_MOUNT_POINT, ZW_STORAGE_PART_LABEL, true, false));
+
   // Enable VFS locking to support backup and restore.
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_USER_PART
   ESP_RETURN_ON_ERROR(esp_vfs_lock_enable(ZW_STORAGE_MOUNT_POINT));
+#endif
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_SYS_PART
+  ESP_RETURN_ON_ERROR(esp_vfs_lock_enable(ZW_SYSTEM_MOUNT_POINT));
+#endif
 
   return ESP_OK;
 }
@@ -101,6 +107,12 @@ esp_err_t remount_system_rw(void) {
   ESP_LOGI(TAG, "Re-mounting system partition read/write...");
   ESP_RETURN_ON_ERROR(esp_vfs_littlefs_unregister(ZW_SYSTEM_PART_LABEL));
   ESP_RETURN_ON_ERROR(_fs_mount(ZW_SYSTEM_MOUNT_POINT, ZW_SYSTEM_PART_LABEL, false, false, false));
+
+  // Enable VFS locking to support backup and restore.
+#ifdef ZW_APPLIANCE_COMPONENT_WEB_SYS_PART
+  ESP_RETURN_ON_ERROR(esp_vfs_lock_enable(ZW_SYSTEM_MOUNT_POINT));
+#endif
+
   return ESP_OK;
 }
 
@@ -111,21 +123,24 @@ void finit(void) {
   rtcmem_finit();
 }
 
-utils::DataOrError<std::unique_ptr<DataPartitionXA>> data_partition_access(bool for_write) {
-  const esp_partition_t *data_part = esp_partition_find_first(
-      ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_LITTLEFS, ZW_STORAGE_PART_LABEL);
+utils::DataOrError<std::unique_ptr<PartitionXA>> partition_access(const char *label,
+                                                                  const char *mount_point,
+                                                                  bool for_write) {
+  const esp_partition_t *data_part =
+      esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_LITTLEFS, label);
   if (data_part == NULL) return ESP_ERR_NOT_FOUND;
 
-  ESP_RETURN_ON_ERROR(esp_vfs_lock_acquire(ZW_STORAGE_MOUNT_POINT));
-  utils::AutoRelease vfs_lock_releaser([] { esp_vfs_lock_release(ZW_STORAGE_MOUNT_POINT); });
+  ESP_RETURN_ON_ERROR(esp_vfs_lock_acquire(mount_point));
+  utils::AutoRelease vfs_lock_releaser([=] { esp_vfs_lock_release(mount_point); });
+
   if (for_write) {
     size_t open_fd_count;
-    ESP_RETURN_ON_ERROR(esp_vfs_open_fd_count(ZW_STORAGE_MOUNT_POINT, &open_fd_count));
+    ESP_RETURN_ON_ERROR(esp_vfs_open_fd_count(mount_point, &open_fd_count));
     if (open_fd_count > 0) return ESP_ERR_INVALID_STATE;
   }
   // Give a generous amount for time for any carry-over activities to clear up.
   vTaskDelay(CONFIG_FREERTOS_HZ / 10);
-  return {std::make_unique<DataPartitionXAImpl>(std::move(vfs_lock_releaser), data_part)};
+  return {std::make_unique<PartitionXAImpl>(std::move(vfs_lock_releaser), data_part)};
 }
 
 }  // namespace zw::esp8266::app::storage

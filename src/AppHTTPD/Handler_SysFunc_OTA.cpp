@@ -246,39 +246,18 @@ esp_err_t _handler_ota(const char* feature, httpd_req_t* req) {
     }
   }
 
-  if (ota_in_progress_) {
-    return httpd_resp_send_custom_err(req, HTTPD_409, "OTA in progress");
-  }
+  if (ota_in_progress_) return httpd_resp_send_custom_err(req, HTTPD_409, "OTA in progress");
 
   if (feature) {
     if (strcmp(feature, OTA_STATE) == 0) {
-      switch (req->method) {
-        case HTTP_GET:
-          return _ota_state(req);
-        default:
-          goto method_not_allowed;
-      }
+      if (req->method == HTTP_GET) return _ota_state(req);
     } else if (strcmp(feature, OTA_DATA) == 0) {
-      switch (req->method) {
-        case HTTP_POST:
-          return _ota_data(req);
-        default:
-          goto method_not_allowed;
-      }
+      if (req->method == HTTP_POST) return _ota_data(req);
     } else if (strncmp(feature, OTA_TOGGLE, utils::STRLEN(OTA_TOGGLE)) == 0) {
-      switch (req->method) {
-        case HTTP_GET:
-          return _ota_toggle(feature + utils::STRLEN(OTA_TOGGLE), req);
-        default:
-          goto method_not_allowed;
-      }
+      if (req->method == HTTP_GET) return _ota_toggle(feature + utils::STRLEN(OTA_TOGGLE), req);
     }
   }
   return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Feature not available");
-
-method_not_allowed:
-  return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED,
-                             "Feature does not accept this method");
 }
 
 }  // namespace

@@ -126,35 +126,14 @@ esp_err_t _handler_provision(const char* feature, httpd_req_t* req) {
     return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Malformed request");
   }
 
-  if (feature) {
-    if (strcmp(feature, PROV_STA_APLIST) == 0) {
-      switch (req->method) {
-        case HTTP_GET:
-          return _prov_sta_aplist_get(req);
-        default:
-          goto method_not_allowed;
-      }
-    } else if (strcmp(feature, PROV_STA_STATE) == 0) {
-      switch (req->method) {
-        case HTTP_GET:
-          return _prov_sta_state_get(req);
-        default:
-          goto method_not_allowed;
-      }
-    } else if (strcmp(feature, PROV_STA_CONFIG) == 0) {
-      switch (req->method) {
-        case HTTP_PUT:
-          return _prov_sta_config_set(req);
-        default:
-          goto method_not_allowed;
-      }
-    }
+  if (strcmp(feature, PROV_STA_APLIST) == 0) {
+    if (req->method == HTTP_GET) return _prov_sta_aplist_get(req);
+  } else if (strcmp(feature, PROV_STA_STATE) == 0) {
+    if (req->method == HTTP_GET) return _prov_sta_state_get(req);
+  } else if (strcmp(feature, PROV_STA_CONFIG) == 0) {
+    if (req->method == HTTP_PUT) return _prov_sta_config_set(req);
   }
   return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Feature not available");
-
-method_not_allowed:
-  return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED,
-                             "Feature does not accept this method");
 }
 
 }  // namespace
