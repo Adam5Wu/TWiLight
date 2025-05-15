@@ -1,4 +1,4 @@
-const ZWBASE_VERSION = "1.1.0"
+const ZWBASE_VERSION = "1.1.1"
 
 const URL_BOOT_SERIAL = "/!sys/boot_serial";
 
@@ -90,17 +90,17 @@ function dialog_op_setup(dialog, options) {
   }
 
   // Clear extra controls from last use
-  var extra_ctrl = dialog.data('extra-ctrl');
+  var extra_ctrl = dialog.data('extra_ctrl');
   if (extra_ctrl) {
     extra_ctrl.remove();
-    dialog.data('extra-ctrl', null);
+    dialog.data('extra_ctrl', null);
   }
 
   // Add extra controls for this use
-  if ('extra-ctrl' in options) {
-    extra_ctrl = options['extra-ctrl'];
+  if ('extra_ctrl' in options) {
+    extra_ctrl = options['extra_ctrl'];
     dialog_ok.before(extra_ctrl);
-    dialog.data('extra-ctrl', extra_ctrl);
+    dialog.data('extra_ctrl', extra_ctrl);
   }
 
   // Clear left-over event handlers from last use.
