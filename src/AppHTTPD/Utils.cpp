@@ -1,5 +1,7 @@
 #include <string>
 
+#include "cJSON.h"
+
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_http_server.h"
@@ -51,6 +53,39 @@ esp_err_t send_file(httpd_req_t* req, FILE* f, size_t size) {
   }
   if (size) ESP_LOGW(TAG, "File read short by %d bytes", size);
   return httpd_resp_send_chunk(req, NULL, 0);
+}
+
+esp_err_t send_json(httpd_req_t* req, const cJSON* json) {
+  utils::AutoReleaseRes<char*> json_str(cJSON_Print(json), [](char* data) {
+    if (data) cJSON_free(data);
+  });
+  if (*json_str == nullptr) {
+    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to print JSON data");
+  }
+
+  ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, HTTPD_TYPE_JSON));
+  ESP_RETURN_ON_ERROR(httpd_resp_send(req, *json_str, HTTPD_RESP_USE_STRLEN));
+  return ESP_OK;
+}
+
+esp_err_t receive_json(httpd_req_t* req, utils::AutoReleaseRes<cJSON*>& json) {
+  std::string config_str(req->content_len, '\0');
+  if (int recv_len = httpd_req_recv(req, &config_str.front(), config_str.length() + 1);
+      recv_len != req->content_len) {
+    ESP_LOGW(TAG, "Receive short, expect %d, got %d", req->content_len, recv_len);
+    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Not all data received");
+  }
+  // Skip checking "Content-Type", just try parse as JSON.
+  json = utils::AutoReleaseRes<cJSON*>(cJSON_ParseWithOpts(config_str.data(), NULL, true),
+                                       [](cJSON* data) {
+                                         if (data) cJSON_Delete(data);
+                                       });
+  if (*json == nullptr) {
+    ESP_LOGW(TAG, "Failed to parse data (around byte %d)", cJSON_GetErrorPtr() - config_str.data());
+    ESP_LOG_BUFFER_HEXDUMP(TAG, cJSON_GetErrorPtr() - 16, 32, ESP_LOG_DEBUG);
+    return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload failed to parse as JSON");
+  }
+  return ESP_OK;
 }
 
 }  // namespace zw::esp8266::app::httpd

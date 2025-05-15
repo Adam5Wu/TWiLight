@@ -35,14 +35,18 @@ inline constexpr char ZW_STORAGE_MOUNT_POINT[] = "/" _ZW_STORAGE_PART_LABEL;
 // Enable WebDAV for development (!! +156KB app)
 #define ZW_APPLIANCE_COMPONENT_WEBDAV
 
-// Enable Web-based system management function (+2.5KB app)
+// Enable Web-based system management function (+0.7KB app)
 #define ZW_APPLIANCE_COMPONENT_WEB_SYSFUNC
 #ifdef ZW_APPLIANCE_COMPONENT_WEB_SYSFUNC
 
-// Enable Web-based network provisioning (+0.6KB app)
+// Enable Web-based network provisioning (+0.4KB app)
 #define ZW_APPLIANCE_COMPONENT_WEB_NET_PROVISION
-// Enable Web-OTA support (+1.5KB app)
+// Enable Web-OTA support (+1.8KB app)
 #define ZW_APPLIANCE_COMPONENT_WEB_OTA
+// Support user partition Web management (+0.4KB)
+#define ZW_APPLIANCE_COMPONENT_WEB_USER_PART
+// Support system partition Web management
+#define ZW_APPLIANCE_COMPONENT_WEB_SYS_PART
 
 #endif
 

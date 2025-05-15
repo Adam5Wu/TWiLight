@@ -24,20 +24,22 @@
         <li class="card" id="time-setup">
           <div class="card-icon woff-icon">&#x1F557;</div>Time
         </li>
-        <li class="card disabled" id="storage-backup">
-          <div class="card-icon woff-icon">&#x1F5AB;</div>Backup
-        </li>
-        <li class="card dropzone prog-test" id="storage-restore">
-          <input type="file" id="storage-file">
-          <label for="storage-file" id="storage-file-label">
-            <div class="card-icon woff-icon">&#x1F5D8;</div>Restore
+        <li class="card dropzone prog-test" id="storage-user">
+          <input type="file" id="storage-user-part">
+          <label for="storage-user-part" id="storage-user-part-label">
+            <div class="card-icon woff-icon">&#x1F5AB;</div>
+            <span class="long-label">User Partition</span>
           </label>
         </li>
-        <li class="card disabled" id="storage-reset">
-          <div class="card-icon woff-icon">&#x1F6E0;</div>Reset
+        <li class="card dropzone hidden" id="storage-system">
+          <input type="file" id="storage-system-part">
+          <label for="storage-system-part" id="storage-system-part-label">
+            <div class="card-icon woff-icon">&#x1F6E0;</div>
+            <span class="long-label">System Partition</span>
+          </label>
         </li>
         <li class="card" id="reboot">
-          <div class="card-icon woff-icon">&#x1F5F2;</div>Reboot
+          <div class="card-icon woff-icon">&#x1F5D8;</div>Reboot
         </li>
       </ul>
     </div>

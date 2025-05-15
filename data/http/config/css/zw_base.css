@@ -669,7 +669,7 @@
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .nowrap {
@@ -705,6 +705,9 @@ hr {
 
 a {
   text-decoration: none;
+}
+a:focus {
+  outline: none;
 }
 
 div.flex-row {
