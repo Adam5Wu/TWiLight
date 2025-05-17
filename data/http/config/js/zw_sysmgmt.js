@@ -110,7 +110,7 @@ function send_storage_data(payload) {
       return xhr;
     }
   }).done(function () {
-    $(`#storage-${payload.type}-up`).css("background-image", "");
+    $(`#storage-${payload.type}`).css("background-image", "");
     confirm_prompt("<p>Upload complete.<p>A reboot is highly recommended, proceed?", do_reboot);
   }).fail(function (jqXHR) {
     var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
