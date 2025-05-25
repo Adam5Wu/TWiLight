@@ -36,6 +36,7 @@ inline constexpr char HTTP_HEADER_CACHE_CONTROL[] = "Cache-Control";
 inline constexpr char HTTP_HEADER_LOCATION[] = "Location";
 inline constexpr char HTTP_HEADER_ETAG[] = "ETag";
 inline constexpr char HTTP_HEADER_IF_NONE_MATCH[] = "If-None-Match";
+inline constexpr char HTTP_HEADER_CONTENT_ENCODING[] = "Content-Encoding";
 
 inline constexpr char HTTP_CACHE_CONTROL_VALUE[] = "max-age=0, must-revalidate";
 
@@ -57,6 +58,9 @@ inline constexpr char HTTP_MIME_AAC[] = "audio/aac";
 inline constexpr char HTTP_MIME_MIDI[] = "audio/midi";
 inline constexpr char HTTP_MIME_XML[] = "application/xml";
 inline constexpr char HTTP_MIME_XHTML[] = "application/xhtml+xml";
+
+inline constexpr char SERVE_AS_GZ_SUFFIX[] = "._serve_as_.gz";
+inline constexpr char CONTENT_ENCODING_GZIP[] = "gzip";
 
 #define INFER_TYPE_FROM_EXT(ext, type, type_ext) \
   if (strcmp(ext, type_ext) == 0) return HTTP_MIME_##type
@@ -148,14 +152,21 @@ esp_err_t _handler_fileserv(httpd_req_t* req) {
     file_path = httpd_config_.root_dir + uri;
     mime_type = _uri_infer_mimetype(uri.c_str());
   }
-  ESP_LOGI(TAG, "%s -> %s", req->uri, file_path.c_str());
 
-  utils::AutoReleaseRes<FILE*> file(fopen(file_path.c_str(), "r"), [](FILE* file) {
+  utils::AutoReleaseRes<FILE*> file(NULL, [](FILE* file) {
     if (file) fclose(file);
   });
-  if (*file == NULL) {
-    return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unable to open file");
+  // Check for existence of `._serve_as_.gz`
+  std::string serve_as_gz_path = file_path + SERVE_AS_GZ_SUFFIX;
+  if (*(file = fopen(serve_as_gz_path.c_str(), "r")) == NULL) {
+    serve_as_gz_path.clear();
+    if (*(file = fopen(file_path.c_str(), "r")) == NULL) {
+      return httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unable to open file");
+    }
   }
+  ESP_LOGI(TAG, "%s -> %s", req->uri,
+           serve_as_gz_path.empty() ? file_path.c_str() : serve_as_gz_path.c_str());
+
   struct stat st;
   if (fstat(fileno(*file), &st) != 0) {
     return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to query file stat");
@@ -179,6 +190,10 @@ esp_err_t _handler_fileserv(httpd_req_t* req) {
   ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, mime_type));
   ESP_RETURN_ON_ERROR(httpd_resp_set_hdr(req, HTTP_HEADER_CACHE_CONTROL, HTTP_CACHE_CONTROL_VALUE));
   ESP_RETURN_ON_ERROR(httpd_resp_set_hdr(req, HTTP_HEADER_ETAG, etag));
+  if (!serve_as_gz_path.empty()) {
+    ESP_RETURN_ON_ERROR(
+        httpd_resp_set_hdr(req, HTTP_HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP));
+  }
   return send_file(req, *file, st.st_size);
 }
 
