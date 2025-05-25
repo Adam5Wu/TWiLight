@@ -69,11 +69,11 @@ function select_ap(evt) {
     ssid_box.val(ap_info['ssid']);
     if (ap_info['open']) {
       passwd_box.val("");
-      passwd_box.prop("required", false);
-      passwd_box.prop("disabled", true);
+      passwd_box.prop('required', false);
+      passwd_box.prop('disabled', true);
     } else {
-      passwd_box.prop("required", true);
-      passwd_box.prop("disabled", false);
+      passwd_box.prop('required', true);
+      passwd_box.prop('disabled', false);
     }
     if (ap_info['ssid']) {
       if (!ap_info['open']) {
