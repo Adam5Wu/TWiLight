@@ -446,7 +446,7 @@ function get_tz_list() {
     cache: {},
     weekday_map: {},
   };
-  const weekday_list = get_weekday_list();
+  const weekday_list = get_locale_weekday_list();
   for (const idx in weekday_list) {
     const weekday = weekday_list[idx];
     utils.weekday_map[weekday[1]] = weekday[0];
@@ -465,20 +465,6 @@ function get_tz_list() {
   return tz_list;
 }
 
-function get_month_list() {
-  const formatter = Intl.DateTimeFormat(undefined, {
-    calendar: "gregory", month: "short"
-  });
-
-  var month_list = [];
-  for (var idx = 0; idx < 12; idx++) {
-    const sample_time = new Date(Date.UTC(2025, idx, 15));
-    const sample_text = formatter.format(sample_time);
-    month_list.push(sample_text);
-  }
-  return month_list;
-}
-
 function get_ordinal_list() {
   // Pending support: https://github.com/tc39/ecma402/issues/494
   // const formatter = new Intl.NumberFormat(undefined, {
@@ -495,27 +481,6 @@ function get_ordinal_list() {
     [0, '1st'], [1, '2nd'], [2, '3rd'],
     [-1, 'Last'],
   ];
-}
-
-function get_weekday_list() {
-  const formatter = Intl.DateTimeFormat(undefined, {
-    calendar: "gregory", weekday: "short"
-  });
-
-  var weekdays = {};
-  for (var idx = 0; idx < 7; idx++) {
-    const sample_time = new Date(Date.UTC(2025, 0, 10 + idx));
-    const sample_text = formatter.format(sample_time);
-    weekdays[sample_time.getDay()] = sample_text;
-  }
-  var weekday_list = [];
-  const locale = formatter.resolvedOptions().locale;
-  const first_dow = new Intl.Locale(locale).getWeekInfo().firstDay;
-  for (var idx = 0; idx < 7; idx++) {
-    const dow = (first_dow + idx) % 7;
-    weekday_list.push([dow, weekdays[dow]]);
-  }
-  return weekday_list;
 }
 
 function get_dst_switch_time() {
@@ -650,7 +615,7 @@ function show_local_time() {
 function init_time_config_dialog() {
   const TZmonthSelects = $("select[id^='config-timezone-dst-'][id$='-month']");
   TZmonthSelects.empty();
-  const month_list = get_month_list();
+  const month_list = get_locale_month_list();
   for (const idx in month_list) {
     const monthOption = $(`<option value="${idx}">${month_list[idx]}</option>`);
     TZmonthSelects.append(monthOption);
@@ -667,7 +632,7 @@ function init_time_config_dialog() {
 
   const TZweekdaySelects = $("select[id^='config-timezone-dst-'][id$='-dow']");
   TZweekdaySelects.empty();
-  const weekday_list = get_weekday_list();
+  const weekday_list = get_locale_weekday_list();
   for (const idx in weekday_list) {
     const dow = weekday_list[idx];
     const weekdayOption = $(`<option value="${dow[0]}">${dow[1]}</option>`);
@@ -696,14 +661,15 @@ function init_time_config_dialog() {
   }
   timeZoneSelect.prepend(`<option value="Custom-Timezone">&lt;&lt; Custom Timezone &gt;&gt;</option>`);
   timeZoneSelect.on('change', timezone_select_update);
+  enable_select_wheeling(timeZoneSelect);
 
-  $("#config-ntp-client-enable").on("change", toggle_ntp_client_enable);
+  $("#config-ntp-client-enable").on('change', toggle_ntp_client_enable);
   $("#config-timezone-enable").on('change', toggle_timezone_enable);
 
   // Timezone fields are derived, not customizable.
-  $("#config-timezone-utc-offset").prop("disabled", true);
-  $("#config-timezone-dst-adjust").prop("disabled", true);
-  $("select[id^=config-timezone-dst]").prop("disabled", true);
+  $("#config-timezone-utc-offset").prop('disabled', true);
+  $("#config-timezone-dst-adjust").prop('disabled', true);
+  $("select[id^=config-timezone-dst]").prop('disabled', true);
 
   setInterval(show_local_time, 1000);
 }
@@ -718,7 +684,7 @@ function toggle_ntp_client_enable() {
 function toggle_timezone_enable() {
   const timeZoneSelect = $("#config-timezone-select");
   if (this.checked && timeZoneSelect.find(":selected").length == 0) {
-    timeZoneSelect.find("option.tz-local").prop("selected", "selected");
+    timeZoneSelect.find("option.tz-local").prop('selected', true);
     timeZoneSelect.trigger('change');
   }
 }
@@ -758,17 +724,17 @@ function time_setup_save() {
 }
 
 function reset_ntp_client_controls() {
-  $('#config-ntp-client-enable').removeAttr('checked');
+  $('#config-ntp-client-enable').prop('checked', false);
   $('#config-ntp-server-addr').val(undefined);
 }
 
 function populate_ntp_client_controls(config) {
-  $('#config-ntp-client-enable').attr('checked', 'checked');
+  $('#config-ntp-client-enable').prop('checked', true);
   $('#config-ntp-server-addr').val(config['ntp_server']);
 }
 
 function reset_timezone_controls() {
-  $("#config-timezone-enable").removeAttr("checked");
+  $("#config-timezone-enable").prop('checked', false);
 
   $("#config-timezone-select").val(undefined);
   $("#config-timezone-utc-offset").val(undefined);
@@ -777,7 +743,7 @@ function reset_timezone_controls() {
 }
 
 function populate_timezone_controls(config) {
-  $('#config-timezone-enable').attr('checked', 'checked');
+  $('#config-timezone-enable').prop('checked', true);
 
   const config_tz_string = config['timezone'];
   const parsed_tz_info = parse_tz_string(config_tz_string);
@@ -844,18 +810,18 @@ function time_setup_click() {
 // Whole page state
 
 function storage_mgmt_features(features) {
-  if (!features.includes('user')) $("#storage-user").addClass("disabled");
+  if (!features.includes('user')) $("#storage-user").addClass('disabled');
   if (features.includes('system')) $("#storage-system").removeClass("hidden");
 }
 
 function enable_mgmt_functions(boot_serial) {
   BOOT_SERIAL = boot_serial;
-  $("#page-content>.card-space>.card").removeClass("disabled");
+  $("#page-content>.card-space>.card").removeClass('disabled');
 
   probe_url_for(URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL, "type": "?" }),
     storage_mgmt_features, function (text) {
       console.log(`Storage management feature unavailable: ${text}`);
-      $(".card[id^='storage-']").addClass("disabled");
+      $(".card[id^='storage-']").addClass('disabled');
     });
 }
 
@@ -895,10 +861,9 @@ function storage_user_mgmt_card(card) {
       storage_user_down_click();
     });
     confirm_prompt("<p>Select action:", storage_user_up_click, {
-      ok_text: "Restore",
-      cancel_text: "Wipe",
-      extra_ctrl: backup_button,
-      onabort: storage_user_reset_click
+      ok_text: "Restore", cancel_text: "Wipe", extra_ctrl: backup_button,
+      onabort: storage_user_reset_click,
+      esc_close: true, backdrop_close: true
     });
   });
 }
@@ -919,7 +884,7 @@ $(function () {
   setup_upload_card($("#storage-system-part"), "system");
 
   if (!DEVMODE) {
-    $("#page-content>.card-space>.card").addClass("disabled");
+    $("#page-content>.card-space>.card").addClass('disabled');
     $("#page-content>.card-space>.card").removeClass('prog-test');
 
     probe_url_for(URL_BOOT_SERIAL, enable_mgmt_functions, function (text) {
