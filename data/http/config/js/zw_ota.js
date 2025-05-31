@@ -97,7 +97,8 @@ function send_fw_data(fw_data) {
   $("#dropzone").hide();
 
   FW_UPLOADING = true;
-  $.post({
+  $.ajax({
+    method: 'POST',
     url: URL_OTA_DATA,
     data: fw_data,
     processData: false,
@@ -111,9 +112,9 @@ function send_fw_data(fw_data) {
     status_text.html("Upload complete, " + reboot_link("reboot to launch") + ".");
     status_text.css("background-image", "");
     refresh_status(true);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    status_text.text("Upload failed" + (resp_text ? ": " + resp_text : "."));
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    status_text.text(`Upload failed: ${resp_text}`);
   }).always(function () {
     FW_UPLOADING = false;
   });
@@ -127,42 +128,46 @@ function fw_version_display_text(fw_info) {
   return version;
 }
 
+function received_ota_status(ota_status) {
+  console.log("Received OTA info:", ota_status);
+
+  const status_text = $("#status-text");
+  const fw_list = $("#fw-list");
+  for (const idx in ota_status) {
+    const fw_info = ota_status[idx];
+
+    const valid = 'image_name' in fw_info;
+    const version = valid ? fw_version_display_text(fw_info) : "(unavailable)";
+    const next = 'next' in fw_info;
+    var status = (idx == 0) ? "boot" : "";
+    if (next) status += (status ? ', ' : '') + 'next';
+    const fw_row = $(`<tr class="${(next || !valid) ? '' : 'toggle'}">
+      <td class="fw-index">${fw_info['index']}</td>
+      <td class="fw-info">${version}</span></td>
+      <td class="fw-status">${status}</td>
+    </tr>`);
+    fw_row.data("fw_info", fw_info);
+    fw_list.append(fw_row);
+  }
+}
+
 function refresh_status(post_update) {
-  var status_text = $("#status-text");
+  const status_text = $("#status-text");
   if (!post_update) {
     status_text.text("Checking OTA status...");
   }
 
-  var fw_list = $("#fw-list");
+  const fw_list = $("#fw-list");
   fw_list.empty();
-
-  $.when($.getJSON(URL_OTA_STATE)).then(function (ota_states) {
-    console.log("Received OTA info:", ota_states);
-
-    for (const idx in ota_states) {
-      var fw_info = ota_states[idx];
-
-      var valid = 'image_name' in fw_info;
-      var version = valid ? fw_version_display_text(fw_info) : "(unavailable)";
-      var status = (idx == 0) ? "boot" : "";
-      var next = 'next' in fw_info;
-      if (next) status += (status ? ', ' : '') + 'next';
-      var fw_row = $(`<tr class="${(next || !valid) ? '' : 'toggle'}">
-  <td class="fw-index">${fw_info['index']}</td>
-  <td class="fw-info">${version}</span></td>
-  <td class="fw-status">${status}</td>
-</tr>`);
-      fw_row.data("fw_info", fw_info);
-      fw_list.append(fw_row);
-    }
+  probe_url_for(URL_OTA_STATE, function (ota_status) {
+    received_ota_status(ota_status);
     if (!post_update) {
       status_text.text("OTA info received.");
       $("#status").hide();
       $("#dropzone").show();
     }
-  }, function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    status_text.text("OTA unavailable" + (resp_text ? ": " + resp_text : "."));
+  }, function (text) {
+    status_text.text(`OTA unavailable: ${text}`);
   });
 }
 
@@ -194,9 +199,9 @@ function fw_toggle_proceed(index) {
   }).done(function () {
     status_text.html("Boot image toggled, " + reboot_link("reboot to launch") + ".");
     refresh_status(true);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    status_text.text("Firmware boot toggle failed" + (resp_text ? ": " + resp_text : "."));
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    status_text.text(`Firmware boot toggle failed: ${resp_text}`);
   });
 }
 

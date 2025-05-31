@@ -112,9 +112,9 @@ function send_storage_data(payload) {
   }).done(function () {
     $(`#storage-${payload.type}`).css("background-image", "");
     confirm_prompt("<p>Upload complete.<p>A reboot is highly recommended, proceed?", do_reboot);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt(`<p>Upload failed${resp_text ? ": " + resp_text : "."}`);
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    notify_prompt(`<p>Upload failed: ${resp_text}`);
   }).always(function () {
     STORAGE_UPLOADING = false;
   });
@@ -135,9 +135,9 @@ function do_storage_user_reset() {
   }).done(function () {
     block_prompt("<p>User data erased. Rebooting in 3 seconds...");
     setTimeout(function () { do_reboot(); }, 3000);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt(`<p>User data erase failed${resp_text ? ": " + resp_text : "."}`);
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    notify_prompt(`<p>User data erase failed: ${resp_text}`);
   });
 }
 
@@ -713,13 +713,12 @@ function time_setup_save() {
     method: "PUT",
     url: URL_CONFIG + '?' + $.param({ "section": CONFIG_SECTION_TIME }),
     data: JSON.stringify(config),
-    processData: false,
     contentType: 'application/json',
   }).done(function () {
     notify_prompt("<p>Configuration updated.");
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt(`<p>Configuration update failed${resp_text ? ": " + resp_text : "."}`);
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    notify_prompt(`<p>Configuration update failed: ${resp_text}`);
   });
 }
 

@@ -184,6 +184,8 @@ extern utils::DataOrError<T> string_decoder(cJSON* item) {
   extern utils::DataOrError<type> decode_##func_name(const char* str)
 
 DEFINE_DECODE_UTIL(size_t, size);
+DEFINE_DECODE_UTIL(uint16_t, short_size);
+DEFINE_DECODE_UTIL(uint8_t, byte_size);
 DEFINE_DECODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef DEFINE_DECODE_UTIL
@@ -223,9 +225,7 @@ extern esp_err_t diff_and_marshal_field(utils::AutoReleaseRes<cJSON*>& container
                                         utils::DataOrError<cJSON*> (*marshal)(const T&, const T&)) {
   ASSIGN_OR_RETURN(auto val, marshal(base, update));
   if (val != NULL) {
-    utils::AutoReleaseRes<cJSON*> item(std::move(val), [](cJSON* json) {
-      if (json != NULL) cJSON_Delete(json);
-    });
+    utils::AutoReleaseRes<cJSON*> item(std::move(val), cJSON_Delete);
     if (esp_err_t err = allocate_container(container); err != ESP_OK) return err;
     cJSON_AddItemToObject(*container, field, item.Drop());
   }
@@ -261,6 +261,8 @@ extern utils::DataOrError<cJSON*> string_encoder(const T& base, const T& update)
 #define DEFINE_ENCODE_UTIL(type, func_name) extern std::string encode_##func_name(const type&)
 
 DEFINE_ENCODE_UTIL(size_t, size);
+DEFINE_ENCODE_UTIL(uint16_t, short_size);
+DEFINE_ENCODE_UTIL(uint8_t, byte_size);
 DEFINE_ENCODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef DEFINE_ENCODE_UTIL

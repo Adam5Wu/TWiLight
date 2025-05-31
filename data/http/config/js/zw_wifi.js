@@ -30,9 +30,8 @@ function send_credential(evt) {
     contentType: 'application/json'
   }).done(function () {
     notify_prompt("<p>Configuration applied!<p>Please wait for the device to connect...");
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined')
-      ? jqXHR.responseText : "(Response text unavailable)";
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
     notify_prompt(`<p>Failed to apply configuration.<p>${resp_text}`);
   }).always(function () {
     $("#btn-apply").prop('disabled', false);
@@ -86,56 +85,84 @@ function select_ap(evt) {
   }
 }
 
-function refresh_aplist() {
-  $("#btn-rescan").prop('disabled', true);
-  $("#wifi-list").html(`<tr>
-  <td class="wifi-index"></td>
-  <td class="wifi-ssid">&#x27F3; Scanning...</td>
-  <td class="wifi-signal"></td>
-</tr>`);
+function received_aplist(ap_list) {
+  console.log("Received AP list:", ap_list);
 
-  $.when($.getJSON(URL_STA_APLIST)).then(function (ap_list) {
-    console.log("Received AP list:", ap_list);
+  const wifi_list = $("#wifi-list");
+  wifi_list.empty();
+  var ssid_val = $("#ssid").val();
+  var count = 0;
+  for (const idx in ap_list) {
+    const ap = ap_list[idx];
 
-    var wifi_list = $("#wifi-list");
-    wifi_list.empty();
-    var ssid_val = $("#ssid").val();
-    var count = 0;
-    for (const idx in ap_list) {
-      var ap = ap_list[idx];
+    var ap_bars = 4;
+    const rssi = ap['rssi'];
+    if (rssi < -60) ap_bars--;
+    if (rssi < -70) ap_bars--;
+    if (rssi < -80) ap_bars--;
 
-      var ap_bars = 4;
-      var rssi = ap['rssi'];
-      if (rssi < -60) ap_bars--;
-      if (rssi < -70) ap_bars--;
-      if (rssi < -80) ap_bars--;
+    const ap_name = ap['ssid'] || "(Hidden)";
+    var ssid_class = [];
+    if (!ap['open']) ssid_class.push("auth");
+    if (!ap['ssid']) ssid_class.push("noname");
 
-      var ap_name = ap['ssid'] || "(Hidden)";
-      var ssid_class = [];
-      if (!ap['open']) ssid_class.push("auth");
-      if (!ap['ssid']) ssid_class.push("noname");
-
-      var tr_class = [];
-      if (ap['ssid'] && ap['ssid'] == ssid_val) {
-        tr_class.push("selected");
-      }
-
-      var ap_row = $(`<tr class="${tr_class.join(' ')}">
-  <td class="wifi-index disp"></td>
-  <td class="wifi-ssid ${ssid_class.join(' ')}">${ap_name}</td>
-  <td class="wifi-signal signal-${ap_bars}"></td>
-</tr>`);
-      ap_row.data("ap_info", ap);
-      wifi_list.append(ap_row);
-
-      if (++count >= 16) break;
+    var tr_class = [];
+    if (ap['ssid'] && ap['ssid'] == ssid_val) {
+      tr_class.push("selected");
     }
-  }, function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    $("#wifi-list td.wifi-ssid").text("Failed to list APs" + (resp_text ? ": " + resp_text : ""));
-  }).done(function () {
-    $("#btn-rescan").prop('disabled', false);
-  })
+
+    const ap_row = $(`<tr class="${tr_class.join(' ')}">
+      <td class="wifi-index disp"></td>
+      <td class="wifi-ssid ${ssid_class.join(' ')}">${ap_name}</td>
+      <td class="wifi-signal signal-${ap_bars}"></td>
+    </tr>`);
+    ap_row.data("ap_info", ap);
+    wifi_list.append(ap_row);
+
+    if (++count >= 16) break;
+  }
+}
+
+function refresh_aplist() {
+  const rescan_button = $("#btn-rescan");
+  rescan_button.prop('disabled', true);
+  const wifi_list = $("#wifi-list");
+  wifi_list.html(`<tr>
+    <td class="wifi-index"></td>
+    <td class="wifi-ssid">&#x27F3; Scanning...</td>
+    <td class="wifi-signal"></td>
+  </tr>`);
+
+  probe_url_for(URL_STA_APLIST, received_aplist, function (text) {
+    wifi_list.find("td.wifi-ssid").text(`Failed to list APs: ${text}`);
+  }, { always: function () { rescan_button.prop('disabled', false); } });
+}
+
+function received_stainfo(sta_info) {
+  console.log("Received Station info:", sta_info);
+
+  const status_box = $("#status-text");
+  const ssid_box = $("#ssid");
+  const passwd_box = $("#password");
+  const apply_button = $("#btn-apply");
+
+  const config = sta_info['config'];
+  const connection = sta_info['connection'];
+  if ('channel' in connection) {
+    status_box.text(`Connected to '${connection['ssid']}' on channel ${connection['channel']}`);
+    ssid_box.val(connection['ssid']);
+    ssid_box.data("reset", connection['ssid']);
+  } else {
+    status_box.text("Not connected to an AP.");
+    ssid_box.val(config['ssid']);
+    ssid_box.data("reset", config['ssid']);
+  }
+  passwd_box.val(config['password']);
+  passwd_box.data("reset", config['password']);
+
+  ssid_box.prop('disabled', false);
+  passwd_box.prop('disabled', false);
+  apply_button.prop('disabled', false);
 }
 
 function refresh_station() {
@@ -147,29 +174,9 @@ function refresh_station() {
   ssid_box.val("");
   passwd_box.val("");
 
-  $.when($.getJSON(URL_STA_STATE)).then(function (sta_info) {
-    console.log("Received Station info:", sta_info);
-    var config = sta_info['config'];
-    var connection = sta_info['connection'];
-    if ('channel' in connection) {
-      status_box.text(`Connected to '${connection['ssid']}' on channel ${connection['channel']}`);
-      ssid_box.val(connection['ssid']);
-      ssid_box.data("reset", connection['ssid']);
-    } else {
-      status_box.text("Not connected to an AP.");
-      ssid_box.val(config['ssid']);
-      ssid_box.data("reset", config['ssid']);
-    }
-    passwd_box.val(config['password']);
-    passwd_box.data("reset", config['password']);
-
-    ssid_box.prop('disabled', false);
-    passwd_box.prop('disabled', false);
-    $("#btn-apply").prop('disabled', false);
-  }, function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    $("#status-text").text("Unable to query connection state" + (resp_text ? ": " + resp_text : ""));
-  }).done(refresh_aplist);
+  probe_url_for(URL_STA_STATE, received_stainfo, function (text) {
+    status_box.text(`Unable to query connection state: ${text}`);
+  }, { always: refresh_aplist });
 }
 
 $(function () {

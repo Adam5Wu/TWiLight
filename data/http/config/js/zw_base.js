@@ -1,4 +1,4 @@
-const ZWBASE_VERSION = "1.1.3"
+const ZWBASE_VERSION = "1.1.4"
 
 const URL_BOOT_SERIAL = "/!sys/boot_serial";
 
