@@ -3,7 +3,7 @@
 
 #include <sdkconfig.h>
 
-#define _ZW_APPLIANCE_NAME "ZWBase"
+#define _ZW_APPLIANCE_NAME "TWiLight"
 inline constexpr char ZW_APPLIANCE_NAME[] = _ZW_APPLIANCE_NAME;
 inline constexpr char ZW_APPLIANCE_AP_PREFIX[] = _ZW_APPLIANCE_NAME "-";
 
@@ -62,7 +62,7 @@ inline constexpr char ZW_STORAGE_MOUNT_POINT[] = "/" _ZW_STORAGE_PART_LABEL;
 // Enable time sync with NTP
 #define ZW_APPLIANCE_COMPONENT_TIME_SNTP
 // Define an alternative limit for smooth time adjustment
-#define ZW_APPLIANCE_COMPONENT_TIME_SMOOTH_LIMIT 600
+#define ZW_APPLIANCE_COMPONENT_TIME_SMOOTH_LIMIT 60
 
 #endif  // ZW_SYSTIME_AVAILABLE
 
