@@ -29,6 +29,15 @@ function tabMessage(evt) {
   }
 }
 
+function hash_change(evt) {
+  const hash = window.location.hash;
+  if (hash) {
+    const menu_tabs = $("#config-tabs");
+    menu_tabs.tabs('option', 'active',
+      menu_tabs.find('a[href="' + hash + '"]').parent().index());
+  }
+}
+
 $(function () {
   const menu_tabs = $("#config-tabs");
   for (const idx in SUB_PAGES) addTab(menu_tabs, SUB_PAGES[idx]);
@@ -39,11 +48,7 @@ $(function () {
     }
   });
 
-  const hash = window.location.hash;
-  if (hash) {
-    menu_tabs.tabs('option', 'active',
-      menu_tabs.find('a[href="' + hash + '"]').parent().index());
-  }
-
-  window.onmessage = tabMessage;
+  $(window).on('hashchange', hash_change);
+  $(window).on('message', tabMessage);
+  hash_change();
 });

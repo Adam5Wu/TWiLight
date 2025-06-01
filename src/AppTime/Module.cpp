@@ -33,10 +33,9 @@ inline constexpr char TAG[] = "Time";
 
 using config::AppConfig;
 
-struct {
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
+struct {
   uint8_t rtc_tracking_cycle;
-#endif
 } states_;
 
 struct BootRecord {
@@ -45,6 +44,7 @@ struct BootRecord {
 };
 
 storage::RTCData<BootRecord> rtc_data_;
+#endif
 
 std::string _print_time(const timeval& tv) {
   struct tm time_tm;
@@ -72,6 +72,7 @@ inline esp_err_t _rebase_time(const timeval& base) {
   return ESP_OK;
 }
 
+#ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
 esp_err_t _rebase_time_from_rtcmem(void) {
   // The RTC counter was always reset at boot, so there is no good way to find
   // out time elapsed since the last checkpoint (before reset / deep sleep).
@@ -84,6 +85,7 @@ esp_err_t _rebase_time_from_rtcmem(void) {
   // other time sync mechanisms).
   return _rebase_time(rtc_data_->last_known);
 }
+#endif  // ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
 
 esp_err_t _rebase_time_from_string(const std::string& time_str) {
   if (time_str.empty()) {
@@ -117,10 +119,13 @@ esp_err_t _rebase_time_from_config(void) {
 }
 
 esp_err_t _boot_rebase_time(void) {
+#ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
   if (rtc_data_->last_known.tv_sec) {
     ESP_LOGD(TAG, "Restoring time from RTC...");
     ESP_RETURN_ON_ERROR(_rebase_time_from_rtcmem());
-  } else {
+  } else
+#endif
+  {
     ESP_LOGD(TAG, "RTC stored time not available, checking config...");
     ESP_RETURN_ON_ERROR(_rebase_time_from_config());
   }
@@ -160,7 +165,6 @@ void _sntp_sync_event(struct timeval* tv, int64_t delta) {
 }
 
 void _sntp_config(const std::string& ntp_server) {
-  ESP_LOGD(TAG, "Starting NTP service...");
   // NTP name resolution is an async process, persist the name string.
   ESP_LOGI(TAG, "Using NTP server: %s", ntp_server.c_str());
   serving_ntp_server = ntp_server;
@@ -207,7 +211,10 @@ void _time_task(TimerHandle_t) {
     } else {
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_SNTP
       if (eventmgr::system_states_peek(ZW_SYSTEM_STATE_NET_STA_IP_READY)) {
-        if (!sntp_enabled()) _sntp_config(config.ntp_server);
+        if (!sntp_enabled()) {
+          ESP_LOGD(TAG, "Starting NTP service...");
+          _sntp_config(config.ntp_server);
+        }
       } else {
         ESP_LOGD(TAG, "NTP waiting for WiFi station connection...");
       }
@@ -267,11 +274,14 @@ esp_err_t _boot_settimezone(void) {
 }
 
 esp_err_t _init_time() {
+#ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
   rtc_data_ = storage::rtcmem_alloc<BootRecord>();
   if (!rtc_data_) {
     ESP_LOGE(TAG, "Failed to allocate RTC memory...");
     return ESP_ERR_NO_MEM;
   }
+#endif
+
   ESP_RETURN_ON_ERROR(_boot_rebase_time());
   ESP_RETURN_ON_ERROR(_boot_settimezone());
 
@@ -319,7 +329,8 @@ esp_err_t RefreshConfig(void) {
   if (config.timezone.empty()) {
     ESP_RETURN_ON_ERROR(_set_timezone("UTC0"));
   } else {
-    if (config.timezone != getenv("TZ")) {
+    const char* current_tz = getenv("TZ");
+    if (!current_tz || config.timezone != getenv("TZ")) {
       ESP_RETURN_ON_ERROR(_set_timezone(config.timezone));
     }
   }
@@ -335,8 +346,10 @@ esp_err_t init(void) {
 }
 
 void finit(void) {
+#ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
   // Store the latest time to minimize time loss across reboot.
   _rtc_time_update();
+#endif
 }
 
 }  // namespace zw::esp8266::app::time

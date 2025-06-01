@@ -92,17 +92,18 @@ ul.card-space {
   flex-wrap: wrap;
   justify-content: center;
   position: relative;
-  margin: 0;
-  padding: 0;
   user-select: none;
-  min-width: 40em;
+  padding: 0;
+  max-width: 40em;
+  min-width: 20em;
+  margin: 0 auto;
 }
 
 ul.card-space li.card {
   display: inline-block;
   margin: 1em;
   padding: 1em;
-  min-width: 4.5em;
+  width: 4.5em;
   border-radius: 1em;
   border-width: 1px;
   border-style: solid;
@@ -120,6 +121,12 @@ ul.card-space li.card .card-icon {
   font-size: 4em;
   line-height: 100%;
   margin-bottom: 6pt;
+}
+
+ul.card-space li.card span.long-label {
+  font-size: small;
+  display: block;
+  margin: -0.25em 0;
 }
 
 ul.card-space li.card.dropzone label {

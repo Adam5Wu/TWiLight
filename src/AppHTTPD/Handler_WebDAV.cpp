@@ -491,8 +491,8 @@ inline esp_err_t _DAV_SEND_DIR(const FS::path& src, httpd_req_t* req, bool conte
                                             _DAV_HTML_RESP_HEADER_STYLE),
                             HTTPD_RESP_USE_STRLEN));
 
-  ESP_RETURN_ON_ERROR(
-      httpd_resp_send_chunk(req, _DAV_DIR_HTML_RESP_BODY_PREAMBLE, HTTPD_RESP_USE_STRLEN));
+  ESP_RETURN_ON_ERROR(httpd_resp_send_chunk(req, _DAV_DIR_HTML_RESP_BODY_PREAMBLE,
+                                            utils::STRLEN(_DAV_DIR_HTML_RESP_BODY_PREAMBLE)));
 
   const char* entry_str = fmt_buf.PrintTo(DAV_DIR_HEADER_TMPL, "Name", "Size", "Last Modified");
   ESP_RETURN_ON_ERROR(httpd_resp_send_chunk(req, entry_str, HTTPD_RESP_USE_STRLEN));
@@ -511,8 +511,8 @@ inline esp_err_t _DAV_SEND_DIR(const FS::path& src, httpd_req_t* req, bool conte
     if (entry_buf == nullptr) continue;
     ZW_BREAK_ON_ERROR_SIMPLE(httpd_resp_send_chunk(req, entry_buf, HTTPD_RESP_USE_STRLEN));
   }
-  ESP_RETURN_ON_ERROR(
-      httpd_resp_send_chunk(req, _DAV_DIR_HTML_RESP_BODY_POSTAMBLE, HTTPD_RESP_USE_STRLEN));
+  ESP_RETURN_ON_ERROR(httpd_resp_send_chunk(req, _DAV_DIR_HTML_RESP_BODY_POSTAMBLE,
+                                            utils::STRLEN(_DAV_DIR_HTML_RESP_BODY_POSTAMBLE)));
   return httpd_resp_send_chunk(req, NULL, 0);
 }
 
@@ -632,8 +632,10 @@ esp_err_t _DAV_PROPFIND(const FS::path& src, uint8_t depth, httpd_req_t* req) {
   do {
     ESP_RETURN_ON_ERROR(httpd_resp_set_status(req, HTTPD_207));
     ESP_RETURN_ON_ERROR(httpd_resp_set_type(req, DAV_XML_RESP_TYPE));
-    ESP_RETURN_ON_ERROR(httpd_resp_send_chunk(req, DAV_XML_RESP_PREAMBLE, HTTPD_RESP_USE_STRLEN));
-    ESP_RETURN_ON_ERROR(httpd_resp_send_chunk(req, DAV_MULTISTAT_PREAMBLE, HTTPD_RESP_USE_STRLEN));
+    ESP_RETURN_ON_ERROR(
+        httpd_resp_send_chunk(req, DAV_XML_RESP_PREAMBLE, utils::STRLEN(DAV_XML_RESP_PREAMBLE)));
+    ESP_RETURN_ON_ERROR(
+        httpd_resp_send_chunk(req, DAV_MULTISTAT_PREAMBLE, utils::STRLEN(DAV_MULTISTAT_PREAMBLE)));
 
     utils::DataBuf buf;
     ESP_RETURN_ON_ERROR(
@@ -655,7 +657,8 @@ esp_err_t _DAV_PROPFIND(const FS::path& src, uint8_t depth, httpd_req_t* req) {
     }
   } while (0);
 
-  ESP_RETURN_ON_ERROR(httpd_resp_send_chunk(req, DAV_MULTISTAT_POSTAMBLE, HTTPD_RESP_USE_STRLEN));
+  ESP_RETURN_ON_ERROR(
+      httpd_resp_send_chunk(req, DAV_MULTISTAT_POSTAMBLE, utils::STRLEN(DAV_MULTISTAT_POSTAMBLE)));
   return httpd_resp_send_chunk(req, NULL, 0);
 }
 

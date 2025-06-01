@@ -50,6 +50,24 @@ utils::DataOrError<size_t> _decode_size(const char* str) {
   return value;
 }
 
+utils::DataOrError<uint16_t> _decode_short_size(const char* str) {
+  ASSIGN_OR_RETURN(size_t size, _decode_size(str));
+  if (size > UINT16_MAX) {
+    ESP_LOGD(TAG, "Number '%s' out-of-range", str);
+    return ESP_ERR_INVALID_ARG;
+  }
+  return (uint16_t)size;
+}
+
+utils::DataOrError<uint8_t> _decode_byte_size(const char* str) {
+  ASSIGN_OR_RETURN(size_t size, _decode_size(str));
+  if (size > UINT8_MAX) {
+    ESP_LOGD(TAG, "Number '%s' out-of-range", str);
+    return ESP_ERR_INVALID_ARG;
+  }
+  return (uint8_t)size;
+}
+
 utils::DataOrError<std::optional<ip_addr_t>> _decode_netmask(const char* str) {
   if (*str == '\0') return std::optional<ip_addr_t>(std::nullopt);
 
@@ -130,9 +148,7 @@ esp_err_t _parse_httpd(const cJSON* json, AppConfig::HttpServer& container, bool
 }
 
 esp_err_t _parse(const char* data, AppConfig& container, bool strict) {
-  utils::AutoReleaseRes<cJSON*> json(cJSON_ParseWithOpts(data, NULL, strict), [](cJSON* json) {
-    if (json) cJSON_Delete(json);
-  });
+  utils::AutoReleaseRes<cJSON*> json(cJSON_ParseWithOpts(data, NULL, strict), cJSON_Delete);
   if (*json == NULL) {
     ESP_LOGW(TAG, "Failed to parse data (around byte %d)", cJSON_GetErrorPtr() - data);
     ESP_LOG_BUFFER_HEXDUMP(TAG, cJSON_GetErrorPtr() - 16, 32, ESP_LOG_DEBUG);
@@ -264,6 +280,9 @@ std::string _encode_size(const size_t& value) {
   return utils::DataBuf(16).PrintTo("%u", value);
 }
 
+std::string _encode_short_size(const uint16_t& value) { return _encode_size(value); }
+std::string _encode_byte_size(const uint8_t& value) { return _encode_size(value); }
+
 std::string _encode_netmask(const std::optional<ip_addr_t>& addr) {
   std::string netmask;
   if (!addr.has_value()) return netmask;
@@ -384,9 +403,7 @@ esp_err_t _load_config(const std::string& file_path, AppConfig& config) {
 }
 
 esp_err_t _store_config(const std::string& file_path, cJSON* json) {
-  utils::AutoReleaseRes<char*> config_str(cJSON_Print(json), [](char* data) {
-    if (data) cJSON_free(data);
-  });
+  utils::AutoReleaseRes<char*> config_str(cJSON_Print(json), cJSON_free);
   if (*config_str == NULL) {
     ESP_LOGE(TAG, "Failed to print JSON data diff");
     return ESP_FAIL;
@@ -487,6 +504,8 @@ utils::DataOrError<bool> bool_parser(cJSON* item) {
   utils::DataOrError<type> decode_##func_name(const char* str) { return _decode_##func_name(str); }
 
 EXPORT_DECODE_UTIL(size_t, size);
+EXPORT_DECODE_UTIL(uint16_t, short_size);
+EXPORT_DECODE_UTIL(uint8_t, byte_size);
 EXPORT_DECODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef EXPORT_DECODE_UTIL
@@ -521,6 +540,8 @@ utils::DataOrError<cJSON*> bool_marshal(const bool& base, const bool& update) {
   std::string encode_##func_name(const type& value) { return _encode_##func_name(value); }
 
 EXPORT_ENCODE_UTIL(size_t, size);
+EXPORT_ENCODE_UTIL(uint16_t, short_size);
+EXPORT_ENCODE_UTIL(uint8_t, byte_size);
 EXPORT_ENCODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef EXPORT_ENCODE_UTIL
@@ -528,9 +549,7 @@ EXPORT_ENCODE_UTIL(std::optional<ip_addr_t>, netmask);
 esp_err_t allocate_container(utils::AutoReleaseRes<cJSON*>& container) {
   if (*container != NULL) return ESP_OK;
 
-  container = utils::AutoReleaseRes<cJSON*>(cJSON_CreateObject(), [](cJSON* json) {
-    if (json) cJSON_Delete(json);
-  });
+  container = utils::AutoReleaseRes<cJSON*>(cJSON_CreateObject(), cJSON_Delete);
   if (*container == NULL) {
     ESP_LOGE(TAG, "Failed to allocate cJSON object");
     return ESP_FAIL;

@@ -18,9 +18,9 @@ function do_reboot() {
 // Storage Backup
 const URL_STORAGE = "/!sys/storage";
 
-function storage_backup_click() {
+function storage_user_down_click() {
   var download_link = document.createElement('a');
-  download_link.href = URL_STORAGE;
+  download_link.href = URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL, "type": "user" })
   download_link.setAttribute('download', '');
   download_link.target = 'download-frame';
   download_link.click();
@@ -29,34 +29,32 @@ function storage_backup_click() {
 //-----------------------
 // Storage Restore
 
-function storage_restore_click(evt) {
+function storage_user_up_click(evt) {
   if (!BOOT_SERIAL) return;
-  if (!$(evt.target).is('#storage-file-label')) {
-    $('#storage-file-label').trigger('click');
-  }
+  $('#storage-user-part-label').trigger('click');
 }
 
-function drop_storage_file(evt) {
+function storage_system_up_click(evt) {
   if (!BOOT_SERIAL) return;
-  evt.preventDefault();
-  $(this).removeClass('drag-hover');
-
-  var storage_file = $("#storage-file")[0];
-  storage_file.files = evt.originalEvent.dataTransfer.files;
-  $(storage_file).trigger('change');
+  $('#storage-user-part-label').trigger('click');
 }
 
-function storage_file_select() {
+function storage_up_select(type) {
+  if (!BOOT_SERIAL) return;
+
   const file = this.files[0];
   if (file) {
     console.log("Selected file:", file);
 
     if (STORAGE_UPLOADING) {
-      console.log("Ignored storage file change due to upload in progress.");
+      console.log("Ignored storage file select due to upload in progress.");
+      return;
     }
 
     const reader = new FileReader();
-    reader.onload = process_storage_data;
+    reader.onload = function (evt) {
+      process_storage_data(evt, type);
+    }
     reader.readAsArrayBuffer(file);
   }
 }
@@ -67,7 +65,7 @@ function bad_storage_data_message(detail) {
   return `<p>Not a LittleFS image or corrupted data${detail ? ":<p>" + detail : "."}`;
 }
 
-function process_storage_data(evt) {
+function process_storage_data(evt, type) {
   const storage_data = evt.target.result;
 
   const decoder = new TextDecoder('utf-8');
@@ -79,11 +77,11 @@ function process_storage_data(evt) {
     return notify_prompt(bad_storage_data_message("Invalid image magic"));
   }
 
-  confirm_prompt("<p>This will replacing all user settings.<p>Proceed?",
-    send_storage_data, { data: storage_data });
+  confirm_prompt(`<p>This will replacing all ${type} data.<p>Proceed?`,
+    send_storage_data, { data: { type: type, data: storage_data } });
 }
 
-function send_storage_progress(evt) {
+function send_storage_progress(evt, type) {
   if (evt.lengthComputable) {
     var percentComplete = evt.loaded * 100 / evt.total;
     console.log("Upload progress: " + Number.parseFloat(percentComplete).toFixed(2) + '%');
@@ -91,30 +89,32 @@ function send_storage_progress(evt) {
     const dark_scheme = window.matchMedia("(prefers-color-scheme: dark)");
     const prog_lower = Number.parseFloat(percentComplete - 2).toFixed(1);
     const prog_higher = Number.parseFloat(percentComplete + 3).toFixed(1);
-    $("#storage-restore").css("background-image",
+    $(`#storage-${type}`).css("background-image",
       `linear-gradient(0deg, ${dark_scheme ? "teal" : "lightblue"} ${prog_lower}%, transparent ${prog_higher}%)`);
   }
 }
 
-function send_storage_data(storage_data) {
+function send_storage_data(payload) {
   STORAGE_UPLOADING = true;
   $.ajax({
     method: "PUT",
-    url: URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL }),
-    data: storage_data,
+    url: URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL, "type": payload.type }),
+    data: payload.data,
     processData: false,
     contentType: 'application/octet-stream',
     xhr: function () {
       var xhr = new window.XMLHttpRequest();
-      xhr.upload.addEventListener("progress", send_storage_progress, false);
+      xhr.upload.addEventListener("progress", function (evt) {
+        send_storage_progress(evt, payload.type);
+      }, false);
       return xhr;
     }
   }).done(function () {
-    $("#storage-restore").css("background-image", "");
+    $(`#storage-${payload.type}`).css("background-image", "");
     confirm_prompt("<p>Upload complete.<p>A reboot is highly recommended, proceed?", do_reboot);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt(`<p>Upload failed${resp_text ? ": " + resp_text : "."}`);
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    notify_prompt(`<p>Upload failed: ${resp_text}`);
   }).always(function () {
     STORAGE_UPLOADING = false;
   });
@@ -123,21 +123,21 @@ function send_storage_data(storage_data) {
 //-----------------------
 // Storage Reset
 
-function storage_reset_click(evt) {
+function storage_user_reset_click() {
   if (!BOOT_SERIAL) return;
-  confirm_prompt("<p>This will erase all user settings and reboot.<p>Proceed?", do_storage_reset);
+  confirm_prompt("<p>This will erase all user data and reboot.<p>Proceed?", do_storage_user_reset);
 }
 
-function do_storage_reset() {
+function do_storage_user_reset() {
   $.ajax({
     method: "DELETE",
-    url: URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL }),
+    url: URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL, "type": "user" }),
   }).done(function () {
-    block_prompt("<p>User setting erased. Rebooting in 3 seconds...");
+    block_prompt("<p>User data erased. Rebooting in 3 seconds...");
     setTimeout(function () { do_reboot(); }, 3000);
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt(`<p>Setting reset failed${resp_text ? ": " + resp_text : "."}`);
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    notify_prompt(`<p>User data erase failed: ${resp_text}`);
   });
 }
 
@@ -399,10 +399,10 @@ function parse_tz_string(tz_string) {
     console.log("Malformed timezone string:", tz_string);
     return null;
   }
-  const zone_parts = tz_parts[0].split(/([+-]?\d{1,2}(:\d{2})?)/).filter(Boolean);
+  const zone_parts = tz_parts[0].split(/([+-]?\d{1,2}(?:\:\d{2})?)/).filter(Boolean);
 
   const utc_offset = zone_parts[1] ? -parse_time_offset(zone_parts[1]) : 0;
-  if (Math.abs(utc_offset) > 12 * 60) {
+  if (Math.abs(utc_offset) > 15 * 60) {
     console.log("Invalid UTC offset:", tz_string);
     return null;
   }
@@ -446,7 +446,7 @@ function get_tz_list() {
     cache: {},
     weekday_map: {},
   };
-  const weekday_list = get_weekday_list();
+  const weekday_list = get_locale_weekday_list();
   for (const idx in weekday_list) {
     const weekday = weekday_list[idx];
     utils.weekday_map[weekday[1]] = weekday[0];
@@ -465,20 +465,6 @@ function get_tz_list() {
   return tz_list;
 }
 
-function get_month_list() {
-  const formatter = Intl.DateTimeFormat(undefined, {
-    calendar: "gregory", month: "short"
-  });
-
-  var month_list = [];
-  for (var idx = 0; idx < 12; idx++) {
-    const sample_time = new Date(Date.UTC(2025, idx, 15));
-    const sample_text = formatter.format(sample_time);
-    month_list.push(sample_text);
-  }
-  return month_list;
-}
-
 function get_ordinal_list() {
   // Pending support: https://github.com/tc39/ecma402/issues/494
   // const formatter = new Intl.NumberFormat(undefined, {
@@ -495,27 +481,6 @@ function get_ordinal_list() {
     [0, '1st'], [1, '2nd'], [2, '3rd'],
     [-1, 'Last'],
   ];
-}
-
-function get_weekday_list() {
-  const formatter = Intl.DateTimeFormat(undefined, {
-    calendar: "gregory", weekday: "short"
-  });
-
-  var weekdays = {};
-  for (var idx = 0; idx < 7; idx++) {
-    const sample_time = new Date(Date.UTC(2025, 0, 10 + idx));
-    const sample_text = formatter.format(sample_time);
-    weekdays[sample_time.getDay()] = sample_text;
-  }
-  var weekday_list = [];
-  const locale = formatter.resolvedOptions().locale;
-  const first_dow = new Intl.Locale(locale).getWeekInfo().firstDay;
-  for (var idx = 0; idx < 7; idx++) {
-    const dow = (first_dow + idx) % 7;
-    weekday_list.push([idx, weekdays[dow]]);
-  }
-  return weekday_list;
 }
 
 function get_dst_switch_time() {
@@ -573,6 +538,8 @@ function handle_alt_switch_time(select, trigger) {
 }
 
 function timezone_control_update(tz_info) {
+  // console.log('TZ Info:', tz_info);
+
   const TZutcOffset = $("#config-timezone-utc-offset");
   const TZdstAdjust = $("#config-timezone-dst-adjust");
   const TZmonthStart = $("#config-timezone-dst-start-month");
@@ -648,7 +615,7 @@ function show_local_time() {
 function init_time_config_dialog() {
   const TZmonthSelects = $("select[id^='config-timezone-dst-'][id$='-month']");
   TZmonthSelects.empty();
-  const month_list = get_month_list();
+  const month_list = get_locale_month_list();
   for (const idx in month_list) {
     const monthOption = $(`<option value="${idx}">${month_list[idx]}</option>`);
     TZmonthSelects.append(monthOption);
@@ -665,7 +632,7 @@ function init_time_config_dialog() {
 
   const TZweekdaySelects = $("select[id^='config-timezone-dst-'][id$='-dow']");
   TZweekdaySelects.empty();
-  const weekday_list = get_weekday_list();
+  const weekday_list = get_locale_weekday_list();
   for (const idx in weekday_list) {
     const dow = weekday_list[idx];
     const weekdayOption = $(`<option value="${dow[0]}">${dow[1]}</option>`);
@@ -694,14 +661,15 @@ function init_time_config_dialog() {
   }
   timeZoneSelect.prepend(`<option value="Custom-Timezone">&lt;&lt; Custom Timezone &gt;&gt;</option>`);
   timeZoneSelect.on('change', timezone_select_update);
+  enable_select_wheeling(timeZoneSelect);
 
-  $("#config-ntp-client-enable").on("change", toggle_ntp_client_enable);
+  $("#config-ntp-client-enable").on('change', toggle_ntp_client_enable);
   $("#config-timezone-enable").on('change', toggle_timezone_enable);
 
   // Timezone fields are derived, not customizable.
-  $("#config-timezone-utc-offset").prop("disabled", true);
-  $("#config-timezone-dst-adjust").prop("disabled", true);
-  $("select[id^=config-timezone-dst]").prop("disabled", true);
+  $("#config-timezone-utc-offset").prop('disabled', true);
+  $("#config-timezone-dst-adjust").prop('disabled', true);
+  $("select[id^=config-timezone-dst]").prop('disabled', true);
 
   setInterval(show_local_time, 1000);
 }
@@ -716,7 +684,7 @@ function toggle_ntp_client_enable() {
 function toggle_timezone_enable() {
   const timeZoneSelect = $("#config-timezone-select");
   if (this.checked && timeZoneSelect.find(":selected").length == 0) {
-    timeZoneSelect.find("option.tz-local").prop("selected", "selected");
+    timeZoneSelect.find("option.tz-local").prop('selected', true);
     timeZoneSelect.trigger('change');
   }
 }
@@ -745,28 +713,27 @@ function time_setup_save() {
     method: "PUT",
     url: URL_CONFIG + '?' + $.param({ "section": CONFIG_SECTION_TIME }),
     data: JSON.stringify(config),
-    processData: false,
     contentType: 'application/json',
   }).done(function () {
     notify_prompt("<p>Configuration updated.");
-  }).fail(function (jqXHR) {
-    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : "";
-    notify_prompt(`<p>Configuration update failed${resp_text ? ": " + resp_text : "."}`);
+  }).fail(function (jqXHR, textStatus) {
+    var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+    notify_prompt(`<p>Configuration update failed: ${resp_text}`);
   });
 }
 
 function reset_ntp_client_controls() {
-  $('#config-ntp-client-enable').removeAttr('checked');
+  $('#config-ntp-client-enable').prop('checked', false);
   $('#config-ntp-server-addr').val(undefined);
 }
 
 function populate_ntp_client_controls(config) {
-  $('#config-ntp-client-enable').attr('checked', 'checked');
+  $('#config-ntp-client-enable').prop('checked', true);
   $('#config-ntp-server-addr').val(config['ntp_server']);
 }
 
 function reset_timezone_controls() {
-  $("#config-timezone-enable").removeAttr("checked");
+  $("#config-timezone-enable").prop('checked', false);
 
   $("#config-timezone-select").val(undefined);
   $("#config-timezone-utc-offset").val(undefined);
@@ -775,7 +742,7 @@ function reset_timezone_controls() {
 }
 
 function populate_timezone_controls(config) {
-  $('#config-timezone-enable').attr('checked', 'checked');
+  $('#config-timezone-enable').prop('checked', true);
 
   const config_tz_string = config['timezone'];
   const parsed_tz_info = parse_tz_string(config_tz_string);
@@ -841,20 +808,31 @@ function time_setup_click() {
 //-----------------------
 // Whole page state
 
-function enable_mgmt_functions(boot_serial) {
-  BOOT_SERIAL = boot_serial;
-  $("#page-content>.card-space>.card").removeClass("disabled");
+function storage_mgmt_features(features) {
+  if (!features.includes('user')) $("#storage-user").addClass('disabled');
+  if (features.includes('system')) $("#storage-system").removeClass("hidden");
 }
 
-$(function () {
-  $("#time-setup").click(time_setup_click);
-  $("#storage-backup").click(storage_backup_click);
-  $("#storage-restore").click(storage_restore_click);
-  $("#storage-reset").click(storage_reset_click);
-  $("#reboot").click(reboot_click);
+function enable_mgmt_functions(boot_serial) {
+  BOOT_SERIAL = boot_serial;
+  $("#page-content>.card-space>.card").removeClass('disabled');
 
-  var drop_recv = $("#storage-file").parent();
-  drop_recv.on('drop', drop_storage_file);
+  probe_url_for(URL_STORAGE + '?' + $.param({ "bs": BOOT_SERIAL, "type": "?" }),
+    storage_mgmt_features, function (text) {
+      console.log(`Storage management feature unavailable: ${text}`);
+      $(".card[id^='storage-']").addClass('disabled');
+    });
+}
+
+//-----------------------
+// Card setup utilities
+
+function setup_upload_card(input, type) {
+  input.change(function () {
+    storage_up_select.apply(this, [type]);
+  });
+
+  const drop_recv = input.parent();
   drop_recv.on('dragover', function (evt) {
     evt.preventDefault();
     $(this).addClass('drag-hover');
@@ -862,10 +840,50 @@ $(function () {
   drop_recv.on('dragleave', function () {
     $(this).removeClass('drag-hover');
   });
-  $("#storage-file").change(storage_file_select);
+  drop_recv.on('drop', function (evt) {
+    evt.preventDefault();
+    $(this).removeClass('drag-hover');
+    input.each(function (idx, elem) {
+      elem.files = evt.originalEvent.dataTransfer.files;
+    });
+    input.trigger('change');
+  });
+}
+
+function storage_user_mgmt_card(card) {
+  card.click(function (evt) {
+    if (evt.target != this) return;
+
+    const backup_button = $(`<input type='button' value='Backup'>`);
+    backup_button.click(function () {
+      prompt_close();
+      storage_user_down_click();
+    });
+    confirm_prompt("<p>Select action:", storage_user_up_click, {
+      ok_text: "Restore", cancel_text: "Wipe", extra_ctrl: backup_button,
+      onabort: storage_user_reset_click,
+      esc_close: true, backdrop_close: true
+    });
+  });
+}
+
+function storage_system_mgmt_card(card) {
+  card.click(function (evt) {
+    if (evt.target == this) storage_system_up_click();
+  });
+}
+
+$(function () {
+  $("#time-setup").click(time_setup_click);
+  $("#reboot").click(reboot_click);
+
+  storage_user_mgmt_card($("#storage-user"));
+  storage_system_mgmt_card($("#storage-system"));
+  setup_upload_card($("#storage-user-part"), "user");
+  setup_upload_card($("#storage-system-part"), "system");
 
   if (!DEVMODE) {
-    $("#page-content>.card-space>.card").addClass("disabled");
+    $("#page-content>.card-space>.card").addClass('disabled');
     $("#page-content>.card-space>.card").removeClass('prog-test');
 
     probe_url_for(URL_BOOT_SERIAL, enable_mgmt_functions, function (text) {
@@ -873,5 +891,8 @@ $(function () {
     });
   } else {
     BOOT_SERIAL = "DEADBEEF";
+    $("#storage-system").removeClass('hidden');
+    $("#storage-system").addClass('disabled');
+    init_time_config_dialog();
   }
 });

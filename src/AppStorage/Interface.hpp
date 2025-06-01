@@ -87,15 +87,15 @@ RTCData<T> rtcmem_alloc(void) {
 
 // Get an exclusive access to the data partition.
 // Useful for backup and restore.
-class DataPartitionXA {
+class PartitionXA {
  public:
-  DataPartitionXA() = default;
-  virtual ~DataPartitionXA() = default;
+  PartitionXA() = default;
+  virtual ~PartitionXA() = default;
 
-  DataPartitionXA(const DataPartitionXA&) = delete;
-  DataPartitionXA& operator=(const DataPartitionXA&) = delete;
-  DataPartitionXA(DataPartitionXA&&) = default;
-  DataPartitionXA& operator=(DataPartitionXA&&) = default;
+  PartitionXA(const PartitionXA&) = delete;
+  PartitionXA& operator=(const PartitionXA&) = delete;
+  PartitionXA(PartitionXA&&) = default;
+  PartitionXA& operator=(PartitionXA&&) = default;
 
   // Number of flash sectors
   virtual size_t sectors(void) const = 0;
@@ -105,12 +105,14 @@ class DataPartitionXA {
   virtual esp_err_t write_sector(size_t sector, const void* buf) const = 0;
 };
 
-// Acquire exclusive data partition for read or write.
+// Acquire exclusive partition access for read or write.
 // - If acquiring for read, there can be open file descriptors, this is because
 //   the underlying file system (littleFS) is crash resilient, so a dump of the
 //   partition will still be consistent.
 // - If acquiring for write, any open file descriptor will result in failure.
-utils::DataOrError<std::unique_ptr<DataPartitionXA>> data_partition_access(bool for_write);
+utils::DataOrError<std::unique_ptr<PartitionXA>> partition_access(const char* label,
+                                                                  const char* mount_point,
+                                                                  bool for_write);
 
 }  // namespace zw::esp8266::app::storage
 
