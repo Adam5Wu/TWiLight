@@ -165,7 +165,6 @@ void _sntp_sync_event(struct timeval* tv, int64_t delta) {
 }
 
 void _sntp_config(const std::string& ntp_server) {
-  ESP_LOGD(TAG, "Starting NTP service...");
   // NTP name resolution is an async process, persist the name string.
   ESP_LOGI(TAG, "Using NTP server: %s", ntp_server.c_str());
   serving_ntp_server = ntp_server;
@@ -212,7 +211,10 @@ void _time_task(TimerHandle_t) {
     } else {
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_SNTP
       if (eventmgr::system_states_peek(ZW_SYSTEM_STATE_NET_STA_IP_READY)) {
-        if (!sntp_enabled()) _sntp_config(config.ntp_server);
+        if (!sntp_enabled()) {
+          ESP_LOGD(TAG, "Starting NTP service...");
+          _sntp_config(config.ntp_server);
+        }
       } else {
         ESP_LOGD(TAG, "NTP waiting for WiFi station connection...");
       }
@@ -327,7 +329,8 @@ esp_err_t RefreshConfig(void) {
   if (config.timezone.empty()) {
     ESP_RETURN_ON_ERROR(_set_timezone("UTC0"));
   } else {
-    if (config.timezone != getenv("TZ")) {
+    const char* current_tz = getenv("TZ");
+    if (!current_tz || config.timezone != getenv("TZ")) {
       ESP_RETURN_ON_ERROR(_set_timezone(config.timezone));
     }
   }
