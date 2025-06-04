@@ -68,6 +68,35 @@ utils::DataOrError<uint8_t> _decode_byte_size(const char* str) {
   return (uint8_t)size;
 }
 
+utils::DataOrError<long> _decode_long_int(const char* str) {
+  if (*str == '\0') return ESP_ERR_NOT_FOUND;
+  char* last;
+  int32_t value = std::strtol(str, &last, 10);
+  if (*last != '\0') {
+    ESP_LOGD(TAG, "Size '%s' is malformed", str);
+    return ESP_ERR_INVALID_ARG;
+  }
+  return value;
+}
+
+utils::DataOrError<int16_t> _decode_short_int(const char* str) {
+  ASSIGN_OR_RETURN(long data, _decode_size(str));
+  if (data > INT16_MAX || data < INT16_MIN) {
+    ESP_LOGD(TAG, "Number '%s' out-of-range", str);
+    return ESP_ERR_INVALID_ARG;
+  }
+  return (int16_t)data;
+}
+
+utils::DataOrError<int8_t> _decode_byte_int(const char* str) {
+  ASSIGN_OR_RETURN(long data, _decode_size(str));
+  if (data > UINT8_MAX || data < INT8_MIN) {
+    ESP_LOGD(TAG, "Number '%s' out-of-range", str);
+    return ESP_ERR_INVALID_ARG;
+  }
+  return (int8_t)data;
+}
+
 utils::DataOrError<std::optional<ip_addr_t>> _decode_netmask(const char* str) {
   if (*str == '\0') return std::optional<ip_addr_t>(std::nullopt);
 
@@ -282,6 +311,14 @@ std::string _encode_size(const size_t& value) {
 
 std::string _encode_short_size(const uint16_t& value) { return _encode_size(value); }
 std::string _encode_byte_size(const uint8_t& value) { return _encode_size(value); }
+
+std::string _encode_long_int(const long& value) {
+  if (value == 0) return "";
+  return utils::DataBuf(16).PrintTo("%ld", value);
+}
+
+std::string _encode_short_int(const int16_t& value) { return _encode_long_int(value); }
+std::string _encode_byte_int(const int8_t& value) { return _encode_long_int(value); }
 
 std::string _encode_netmask(const std::optional<ip_addr_t>& addr) {
   std::string netmask;
@@ -506,6 +543,9 @@ utils::DataOrError<bool> bool_parser(cJSON* item) {
 EXPORT_DECODE_UTIL(size_t, size);
 EXPORT_DECODE_UTIL(uint16_t, short_size);
 EXPORT_DECODE_UTIL(uint8_t, byte_size);
+EXPORT_DECODE_UTIL(long, long_int);
+EXPORT_DECODE_UTIL(int16_t, short_int);
+EXPORT_DECODE_UTIL(int8_t, byte_int);
 EXPORT_DECODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef EXPORT_DECODE_UTIL
@@ -542,6 +582,9 @@ utils::DataOrError<cJSON*> bool_marshal(const bool& base, const bool& update) {
 EXPORT_ENCODE_UTIL(size_t, size);
 EXPORT_ENCODE_UTIL(uint16_t, short_size);
 EXPORT_ENCODE_UTIL(uint8_t, byte_size);
+EXPORT_ENCODE_UTIL(long, long_int);
+EXPORT_ENCODE_UTIL(int16_t, short_int);
+EXPORT_ENCODE_UTIL(int8_t, byte_int);
 EXPORT_ENCODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef EXPORT_ENCODE_UTIL

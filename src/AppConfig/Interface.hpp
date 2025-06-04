@@ -186,6 +186,9 @@ extern utils::DataOrError<T> string_decoder(cJSON* item) {
 DEFINE_DECODE_UTIL(size_t, size);
 DEFINE_DECODE_UTIL(uint16_t, short_size);
 DEFINE_DECODE_UTIL(uint8_t, byte_size);
+DEFINE_DECODE_UTIL(long, long_int);
+DEFINE_DECODE_UTIL(int16_t, short_int);
+DEFINE_DECODE_UTIL(int8_t, byte_int);
 DEFINE_DECODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef DEFINE_DECODE_UTIL
@@ -263,6 +266,9 @@ extern utils::DataOrError<cJSON*> string_encoder(const T& base, const T& update)
 DEFINE_ENCODE_UTIL(size_t, size);
 DEFINE_ENCODE_UTIL(uint16_t, short_size);
 DEFINE_ENCODE_UTIL(uint8_t, byte_size);
+DEFINE_ENCODE_UTIL(long, long_int);
+DEFINE_ENCODE_UTIL(int16_t, short_int);
+DEFINE_ENCODE_UTIL(int8_t, byte_int);
 DEFINE_ENCODE_UTIL(std::optional<ip_addr_t>, netmask);
 
 #undef DEFINE_ENCODE_UTIL

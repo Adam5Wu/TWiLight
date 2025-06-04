@@ -895,6 +895,7 @@ fieldset {
   border-width: 1pt;
   border-style: solid;
   margin-top: 0.5em;
+  position: relative;
 }
 
 fieldset:first-child {

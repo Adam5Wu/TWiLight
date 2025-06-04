@@ -17,7 +17,7 @@ function addTab(menu_tabs, entry) {
 }
 
 function tabMessage(evt) {
-  const payload = JSON.parse(evt.data);
+  const payload = JSON.parse(evt.originalEvent.data);
 
   if ('reboot' in payload) {
     console.log("Reboot signaled, renewing inactive tabs...");
