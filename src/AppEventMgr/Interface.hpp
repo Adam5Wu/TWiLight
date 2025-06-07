@@ -44,7 +44,8 @@ extern void SetSystemFailed(void);
 #define ZW_SYSTEM_EVENT_HTTPD_READY 3
 #define ZW_SYSTEM_EVENT_NET_STA_IP_READY 4
 #define ZW_SYSTEM_EVENT_NET_STA_IP_REFRESH 5
-#define ZW_SYSTEM_EVENT_BOOT_IMAGE_ALT 6
+#define ZW_SYSTEM_EVENT_TIME_NTP_TRACKING 6
+#define ZW_SYSTEM_EVENT_BOOT_IMAGE_ALT 7
 
 extern esp_err_t system_event_post(int32_t event_id, const void* event_data, size_t data_size);
 

@@ -162,6 +162,7 @@ void _sntp_sync_event(struct timeval* tv, int64_t delta) {
   ESP_LOGI(TAG, "SNTP time: %s (delta %d.%03d sec)", time_str.c_str(), (int32_t)(delta / 1000000),
            abs((int32_t)(delta % 1000000)) / 1000);
   eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_NTP_TRACKING);
+  eventmgr::system_event_post(ZW_SYSTEM_EVENT_TIME_NTP_TRACKING);
 }
 
 void _sntp_config(const std::string& ntp_server) {
