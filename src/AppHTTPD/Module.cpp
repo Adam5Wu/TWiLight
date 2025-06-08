@@ -32,7 +32,8 @@
 #include "AppConfig/Interface.hpp"
 #include "AppEventMgr/Interface.hpp"
 
-
+#define HTTP_SERV_MAX_SOCKETS 20
+#define HTTP_SERV_KEEP_ALIVE true
 #define HTTP_SERV_THREAD_WITH_DAV_STACK 5120
 #define HTTP_SERV_THREAD_NO_DAV_STACK 3840
 
@@ -128,8 +129,8 @@ void _reconfigure(void*) {
       httpd_config.uri_match_fn = &httpd_uri_match_wildcard;
       httpd_config.stack_size = serving_config_.dav_enabled ? HTTP_SERV_THREAD_WITH_DAV_STACK
                                                             : HTTP_SERV_THREAD_NO_DAV_STACK;
-      httpd_config.max_open_sockets = 10;
-      httpd_config.keep_alive_enable = true;
+      httpd_config.max_open_sockets = std::min(CONFIG_LWIP_MAX_SOCKETS - 3, HTTP_SERV_MAX_SOCKETS);
+      httpd_config.keep_alive_enable = HTTP_SERV_KEEP_ALIVE;
       ESP_GOTO_ON_ERROR(httpd_start((httpd_handle_t*)&httpd_, &httpd_config), failed);
 
       // Populate additional custom data here.
