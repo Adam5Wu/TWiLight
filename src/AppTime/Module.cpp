@@ -23,6 +23,7 @@
 #include "AppStorage/Interface.hpp"
 #include "AppEventMgr/Interface.hpp"
 #include "AppConfig/Interface.hpp"
+#include "Interface.hpp"
 
 #define TIME_RTC_TRACKING_CYCLE 5  // 5 sec
 
@@ -47,12 +48,12 @@ storage::RTCData<BootRecord> rtc_data_;
 #endif
 
 std::string _print_time(const timeval& tv) {
-  struct tm time_tm;
-  if (localtime_r(&tv.tv_sec, &time_tm) == NULL) {
+  auto time_tm = ToLocalTime(tv.tv_sec);
+  if (!time_tm) {
     return "(failed to convert)";
   }
   char time_str[30];
-  if (strftime(time_str, 30, "%F %T %Z", &time_tm) == 0) {
+  if (strftime(time_str, 30, "%F %T %Z", &*time_tm) == 0) {
     return "(failed to format)";
   }
   return time_str;
@@ -188,15 +189,16 @@ void _sntp_config(const std::string& ntp_server) {
 void _time_task(TimerHandle_t) {
   // Make smooth adjustment to the system clock.
   {
-    uint64_t delta;
+    int64_t delta;
     {
       esp_irqflag_t flag;
       flag = soc_save_local_irq();
       adjust_boot_time(&delta);
       soc_restore_local_irq(flag);
     }
-    ESP_LOGD(TAG, "Delta = %dms", (uint32_t)(delta / 1000));
-    eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_ALIGNED, delta < 1000000);
+    int32_t delta_ms = delta / 1000;
+    ESP_LOGD(TAG, "Delta = %dms", delta_ms);
+    eventmgr::system_states_set(ZW_SYSTEM_STATE_TIME_ALIGNED, delta_ms < 1000);
   }
 
 #ifdef ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
@@ -299,6 +301,24 @@ esp_err_t _init_time() {
 }
 
 }  // namespace
+
+utils::DataOrError<struct tm> ToLocalTime(time_t epoch_sec) {
+  struct tm time_tm;
+  if (localtime_r(&epoch_sec, &time_tm) == NULL) {
+    ESP_LOGW(TAG, "Failed to convert to local time");
+    return ESP_ERR_INVALID_ARG;
+  }
+  return time_tm;
+}
+
+utils::DataOrError<struct tm> GetLocalTime(void) {
+  struct timeval tv;
+  if (gettimeofday(&tv, NULL) != 0) {
+    ESP_LOGW(TAG, "Unable to get current time");
+    return ESP_FAIL;
+  }
+  return ToLocalTime(tv.tv_sec);
+}
 
 esp_err_t RefreshConfig(void) {
   AppConfig::Time config = config::get()->time;

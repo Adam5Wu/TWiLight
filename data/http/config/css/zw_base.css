@@ -1084,9 +1084,27 @@ dialog.config .ui-slider-handle input {
 
 .config-container .tip {
   font-size: smaller;
+  display: table;
+  margin: 0 auto;
+  border-spacing: 0.2em;
 }
 .config-container .tip::before,
 .config-container .tip::after {
-  padding: 0 0.25em;
-  content: "\25CF";
+  padding: 0 0.125em;
+  content: "";
+  display: table-cell;
+  border-width: 1pt;
+  border-style: solid;
+}
+.config-container .tip::before {
+  border-right: none;
+  border-radius: 0.5em 0 0 0.5em;
+}
+.config-container .tip::after {
+  border-left: none;
+  border-radius: 0 0.5em 0.5em 0;
+}
+.config-container .tip>div {
+  text-align: initial;
+  display: inline-block;
 }
