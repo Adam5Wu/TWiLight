@@ -4,7 +4,7 @@
     "ap": {
       "ssid_prefix": null,
       "password": null,
-      "net_provision_only": false
+      "net_provision_only": true
     },
     "station": {
       "ssid": null,
@@ -16,8 +16,8 @@
   },
   "time": {
     "baseline": "2025-05-01 10:00:00",
-    "timezone": null,
-    "ntp_server": null
+    "timezone": "UTC0",
+    "ntp_server": "time.google.com"
   },
   "http_server": {
     "root_dir": "/system/http",

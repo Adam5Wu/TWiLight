@@ -1,6 +1,6 @@
 var DEVMODE = window.location.protocol === 'file:';
 const SUB_PAGES = [
-  { "title": "App Config", "anchor": "app-config", "url": "app.html" },
+  { "title": "TWiLight", "anchor": "app-config", "url": "app.html" },
   { "title": "Network", "anchor": "wifi-config", "url": "wifi.html" },
   { "title": "Firmware", "anchor": "ota", "url": "ota.html" },
   { "title": "System", "anchor": "sys-mgmt", "url": "sysmgmt.html" }

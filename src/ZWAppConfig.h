@@ -3,7 +3,7 @@
 
 #include <sdkconfig.h>
 
-#define _ZW_APPLIANCE_NAME "ZWBase"
+#define _ZW_APPLIANCE_NAME "TWiLight"
 inline constexpr char ZW_APPLIANCE_NAME[] = _ZW_APPLIANCE_NAME;
 inline constexpr char ZW_APPLIANCE_AP_PREFIX[] = _ZW_APPLIANCE_NAME "-";
 
@@ -33,7 +33,7 @@ inline constexpr char ZW_STORAGE_MOUNT_POINT[] = "/" _ZW_STORAGE_PART_LABEL;
 // Enable Captive DNS during network provisioning (+0.6KB app)
 #define ZW_APPLIANCE_COMPONENT_NET_CAPTIVE_DNS
 // Enable WebDAV for development (!! +156KB app)
-#define ZW_APPLIANCE_COMPONENT_WEBDAV
+// #define ZW_APPLIANCE_COMPONENT_WEBDAV
 
 // Enable Web-based system management function (+0.7KB app)
 #define ZW_APPLIANCE_COMPONENT_WEB_SYSFUNC
@@ -58,11 +58,11 @@ inline constexpr char ZW_STORAGE_MOUNT_POINT[] = "/" _ZW_STORAGE_PART_LABEL;
 #ifdef ZW_SYSTIME_AVAILABLE
 
 // Enable tracking time in RTC (so that time after reboot is more accurate)
-#define ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
+// #define ZW_APPLIANCE_COMPONENT_TIME_RTC_TRACKING
 // Enable time sync with NTP
 #define ZW_APPLIANCE_COMPONENT_TIME_SNTP
 // Define an alternative limit for smooth time adjustment
-#define ZW_APPLIANCE_COMPONENT_TIME_SMOOTH_LIMIT 600
+#define ZW_APPLIANCE_COMPONENT_TIME_SMOOTH_LIMIT 60
 
 #endif  // ZW_SYSTIME_AVAILABLE
 

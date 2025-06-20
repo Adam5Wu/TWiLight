@@ -2,22 +2,268 @@
 <html>
 
 <head>
-  <title>Your Configuration</title>
+  <title>TWiLight Configuration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/jquery-ui-1.14.1.structure.min.css">
+  <link rel="stylesheet" href="css/timedropper.css">
   <link rel="stylesheet" href="css/zw_base.css">
+  <link rel="stylesheet" href="css/zw_app.css">
+  <script src="js/jquery-3.7.1.min.js"></script>
+  <script src="js/jquery-ui-1.14.1.min.js"></script>
+  <script src="js/jquery.ui.touch-punch.js"></script>
+  <script src="js/lodash-4.17.21.min.js"></script>
+  <script src="js/iro-5.5.2.min.js"></script>
+  <script src="js/colorjs-0.6.0-a1.min.js"></script>
+  <script src="js/moment-with-locales-2.30.1.min.js"></script>
+  <script src="js/timedropper.js"></script>
+  <script src="js/zw_base.js"></script>
+  <script src="js/zw_app.js"></script>
 </head>
 
 <body>
 
   <div id="page-container">
     <div id="page-heading">
-      <h1>Your Configuration</h1>
+      <h1>TWiLight Configuration</h1>
       <hr>
     </div>
 
     <div id="page-content">
-      Your configuration interface here.
+      <form id="config-form" class="syncing">
+        <div class="cover"></div>
+        <div id="config-sections">
+          <h3>LED Strip</h3>
+          <div class="config-container">
+            <fieldset id="config-pixels">
+              <legend>Pixels</legend>
+              <div id="strip-length-slider">
+                <div class="ui-slider-handle">
+                  <input type="text" inputmode="numeric">
+                </div>
+              </div>
+            </fieldset>
+            <fieldset id="config-transitions">
+              <legend>Transitions</legend>
+              <table id="strip-transitions" class="interactive">
+                <thead>
+                  <tr>
+                    <th width="30%">Name</th>
+                    <th width="25%">Type</th>
+                    <th>Parameters</th>
+                    <th class="tooling"></th>
+                  </tr>
+                </thead>
+                <tbody id="strip-transition-list">
+                  <tr id="new-transition">
+                    <td class="list-append"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </fieldset>
+          </div>
+          <h3>NTP & Timezone</h3>
+          <div class="config-container center">
+            <span id="redir-ntp-tz" class="redir-link">>> Go to System Configurations >></span>
+          </div>
+          <h3>Events</h3>
+          <div class="config-container">
+            <div class="tip nowrap">
+              <div>
+                Event with higher index number takes precedence;<br>
+                Events with unspecific end-time finish at the next event start.
+              </div>
+            </div>
+            <ol id="event-list" class="sortable-list" title="Double click to edit / remove events, drag to reorder.">
+              <li class="list-append"></li>
+            </ol>
+          </div>
+        </div>
+        <div class="controls">
+          <input type="submit" id="btn-save" value="Save">
+          <input type="button" id="btn-discard" value="Discard">
+        </div>
+      </form>
     </div>
   </div>
+
+  <dialog class="config" id="transition-params:uniform-color">
+    <div class="dlg-header">
+      Transition [<span class="dlg-message">(name)</span>]: Uniform-color Parameters
+    </div>
+    <div class="dlg-body config-container">
+      <fieldset id="uniform-color:duration">
+        <legend>Duration (seconds)</legend>
+        <div id="uniform-color:duration-slider">
+          <div class="ui-slider-handle">
+            <input type="text" inputmode="numeric">
+          </div>
+        </div>
+      </fieldset>
+      <fieldset id="uniform-color:color">
+        <legend>Color</legend>
+        <div class="flex-row">
+          <div id="uniform-color:color-picker"></div>
+          <div class="color-picker-ctrl">
+            <div>
+              <label for="uniform-color:color-picker:input-rgb">
+                <span>Color:</span>
+                <input type="text" id="uniform-color:color-picker:input-rgb" class="decor-left decor-hash">
+              </label>
+            </div>
+            <hr>
+            <div>
+              <label for="uniform-color:color-picker:input-red">
+                <span>R:</span>
+                <input type="text" inputmode="numeric" id="uniform-color:color-picker:input-red">
+              </label>
+            </div>
+            <div>
+              <label for="uniform-color:color-picker:input-green">
+                <span>G:</span>
+                <input type="text" inputmode="numeric" id="uniform-color:color-picker:input-green">
+              </label>
+            </div>
+            <div>
+              <label for="uniform-color:color-picker:input-blue">
+                <span>B:</span>
+                <input type="text" inputmode="numeric" id="uniform-color:color-picker:input-blue">
+              </label>
+            </div>
+            <hr>
+            <div>
+              <label for="uniform-color:color-picker:input-hue">
+                <span>H:</span>
+                <input type="text" inputmode="numeric" class="decor-right decor-deg"
+                  id="uniform-color:color-picker:input-hue">
+              </label>
+            </div>
+            <div>
+              <label for="uniform-color:color-picker:input-sat">
+                <span>S:</span>
+                <input type="text" inputmode="numeric" class="decor-right decor-pct"
+                  id="uniform-color:color-picker:input-sat">
+              </label>
+            </div>
+            <div>
+              <label for="uniform-color:color-picker:input-val">
+                <span>V:</span>
+                <input type="text" inputmode="numeric" class="decor-right decor-pct"
+                  id="uniform-color:color-picker:input-val">
+              </label>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="button" class="test-button" value="Test">
+      <input type="submit" value="Save">
+      <input type="reset" value="Discard">
+    </form>
+  </dialog>
+
+  <dialog class="config" id="event-params:recurrent">
+    <div class="dlg-header">
+      Recurrent Event Configuration
+    </div>
+    <div class="dlg-body config-container">
+      <fieldset id="event-params:recurrence">
+        <legend>Recurrence</legend>
+        <div class="flex-row flex-spread nowrap">
+          <label for="event-params:recurrence-type:daily">
+            <input type="radio" id="event-params:recurrence-type:daily" name="event-params:recurrence-type" checked>
+            <span>Daily</span>
+          </label>
+          <label for="event-params:recurrence-type:weekly">
+            <input type="radio" id="event-params:recurrence-type:weekly" name="event-params:recurrence-type">
+            <span>Weekly</span>
+          </label>
+          <label for="event-params:recurrence-type:annual">
+            <input type="radio" id="event-params:recurrence-type:annual" name="event-params:recurrence-type">
+            <span>Annual</span>
+          </label>
+        </div>
+        <hr>
+        <div class="sub-params nowrap">
+          <div id="event-params:recurrence-weekly" class="flex-row flex-spread hidden">
+            <label for="event-params:recurrence-weekly:1">
+              <input type="checkbox" id="event-params:recurrence-weekly:1">
+              <span>Mon</span>
+            </label>
+            <label for="event-params:recurrence-weekly:2">
+              <input type="checkbox" id="event-params:recurrence-weekly:2">
+              <span>Tue</span>
+            </label>
+            <label for="event-params:recurrence-weekly:3">
+              <input type="checkbox" id="event-params:recurrence-weekly:3">
+              <span>Wed</span>
+            </label>
+            <label for="event-params:recurrence-weekly:4">
+              <input type="checkbox" id="event-params:recurrence-weekly:4">
+              <span>Thu</span>
+            </label>
+            <label for="event-params:recurrence-weekly:5">
+              <input type="checkbox" id="event-params:recurrence-weekly:5">
+              <span>Fri</span>
+            </label>
+            <label for="event-params:recurrence-weekly:6">
+              <input type="checkbox" id="event-params:recurrence-weekly:6">
+              <span>Sat</span>
+            </label>
+            <label for="event-params:recurrence-weekly:7">
+              <input type="checkbox" id="event-params:recurrence-weekly:0">
+              <span>Sun</span>
+            </label>
+          </div>
+          <div id="event-params:recurrence-annual" class="flex-row flex-spread hidden">
+            <label for="event-params:recurrence-annual:month">
+              <span>On Date:</span>
+              <select id="event-params:recurrence-annual:month"></select>
+              <select id="event-params:recurrence-annual:day"></select>
+            </label>
+          </div>
+          <div id="event-params:recurrence-daily" class="flex-row flex-spread">
+            <div>
+              <span class="embed-line-below">Start:</span>
+              <input type="text" class="hidden" id="event-params:recurrence-daily:start">
+              <div class="tdex container"></div>
+            </div>
+            <div class="checkbox-enabled">
+              <span class="embed-line-below">
+                <label for="event-params:recurrence-daily:end-enable">
+                  <input type="checkbox" id="event-params:recurrence-daily:end-enable" class="enabler">
+                  <span>End:</span>
+                </label>
+              </span>
+              <input type="text" class="hidden" id="event-params:recurrence-daily:end">
+              <div class="tdex container"></div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset id="event-params:recurrent:transitions">
+        <legend>Transitions</legend>
+        <div class="tip nowrap">Transitions will be executed in sequence.</div>
+        <ol id="event-params:recurrent:transition-list" class="sortable-list"
+          title="Double click to edit / remove transitions; drag to reorder.">
+          <li class="list-append"></li>
+        </ol>
+      </fieldset>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="submit" value="Save">
+      <input type="reset" value="Discard">
+    </form>
+  </dialog>
+
+  <dialog id="dialog">
+    <div class="dlg-body">
+      <span class="dlg-message">This is a message!</span>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="submit" value="OK">
+      <input type="reset" value="Cancel">
+    </form>
+  </dialog>
 
 </html>

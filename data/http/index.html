@@ -2,93 +2,184 @@
 <html>
 
 <head>
-  <title>Welcome to ESP8266Base!</title>
+  <title>Welcome to Project TWiLight!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="config/css/jquery-ui-1.14.1.structure.min.css">
+  <link rel="stylesheet" href="config/css/zw_base.css">
+  <link rel="stylesheet" href="config/css/zw_sysmgmt.css">
+  <link rel="stylesheet" href="config/css/zw_app.css">
+  <script src="config/js/jquery-3.7.1.min.js"></script>
+  <script src="config/js/jquery-ui-1.14.1.min.js"></script>
+  <script src="config/js/jquery.ui.touch-punch.js"></script>
+  <script src="config/js/zw_base.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
+    .config-container {
+      max-width: 40em;
+      min-width: 30em;
+      margin: 0 auto;
     }
 
-    :target {
-      background-color: powderblue;
+    #manual-override\:duration-slider {
+      margin: 0.5em 0.75em;
+    }
+
+    #manual-override\:duration-slider .ui-slider-handle {
+      width: 3em;
+      margin-left: -1.5em;
+      color: teal;
+    }
+
+    #manual-override\:duration-slider .ui-slider-handle input {
+      width: 2.8em;
+    }
+
+    #manual-override\:color ul.card-space {
+      max-width: none;
+      min-width: none;
+      width: 100%;
+      justify-content: space-evenly;
+    }
+
+    #manual-override\:color li.card {
+      width: 4em;
+      margin: 0.5em;
+      padding: 1.2em 1em 1em
+    }
+
+    #manual-override\:color div.card-icon {
+      font-size: 3em;
     }
   </style>
+
 </head>
 
 <body>
-  <h1>Welcome to the ESP8266Base project!</h1>
-  <hr>
-  <p>This project provides a generic framework and foundation for <em>rapid</em> IoT appliances creation.
-  <p>The following features are available <em>without writing a line of code</em>:
-  <ul>
-    <li>Out-of-box network provisioning:
-      <ul>
-        <li>Automatically enter provisioning mode out-of-box;
-        <li>Supports provisioning using the
-          <a href="https://play.google.com/store/apps/details?id=com.espressif.provsoftap" target="_blank">
-            ESP SoftAP Provisioning app</a>;
-        <li>Also offers a <a href="config/wifi.html" target="_blank">built-in Web page</a>
-          (automatically prompted using a <em>captive portal</em>);
-        <li><a name="re-provision">If the configured AP is unavailable at boot, will automatically enter
-            provisioning mode</a>;<br>
-          And if the AP recovers later, will <em>automatically</em> exit provisioning mode;
-        <li>Provisioned AP config stored as a part of <a href="#config-mgmt">config file</a>;
-      </ul>
+  <div id="page-container">
+    <div id="page-heading">
+      <h1>TWiLight</h1>
+      <hr>
+    </div>
+    <div id="page-content">
+      <div class="config-container">
+        <fieldset>
+          <legend>Manual Override</legend>
+          <div class="tip nowrap">
+            Override with no duration ends at next scheduled event or mid-night;<br>
+            Entering setup always terminates override immediately.
+          </div>
+          <div class="sub-params nowrap">
+            <fieldset id="manual-override:duration" class="checkbox-enabled">
+              <legend>
+                <label for="manual-override:duration-enable">
+                  <input type="checkbox" id="manual-override:duration-enable" class="enabler" checked>
+                  <span>Duration (seconds)</span>
+                </label>
+              </legend>
+              <div id="manual-override:duration-slider" class="container">
+                <div class="ui-slider-handle">
+                  <input type="text" inputmode="numeric">
+                </div>
+              </div>
+            </fieldset>
+            <fieldset id="manual-override:color">
+              <legend>Static Color</legend>
+              <div class="flex-row">
+                <ul class="card-space">
+                  <li class="card" id="manual-override:color:day">
+                    <div class="card-icon woff-icon">&#x1F31E;</div>Day
+                  </li>
+                  <li class="card" id="manual-override:color:dawn">
+                    <div class="card-icon woff-icon">&#x1F304;</div>Dawn
+                  </li>
+                  <li class="card" id="manual-override:color:forest">
+                    <div class="card-icon woff-icon">&#x1F332;</div>Forest
+                  </li>
+                  <li class="card" id="manual-override:color:ocean">
+                    <div class="card-icon woff-icon">&#x1F30A;</div>Ocean
+                  </li>
+                </ul>
+              </div>
+            </fieldset>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Setup</legend>
+          <div class="field-contents center">
+            <span id="redir-config" class="redir-link">>> Go to Configurations >></span>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </div>
 
-    <li>During regular servicing (after connected to an AP):
-      <ul>
-        <li>Automatic reconnect if connection to AP drops out<br>
-          For permanent AP turn-off, <a href="#re-provision">a reboot is needed to enter provisioning mode</a>;
-        <li>NTP time-sync with smooth time adjustment for small delta (&lt;10 minutes);
-        <li>Time tracking with <a href="#rtc-mgmt">RTC memory</a>, and automatic restore at (powered-through) reboots;
-        <li>Regular HTTP file serving with MIME type auto-inference for a number of built-in file extensions;<br>
-          Supports browser caching and ETag validation;
-        <li>WebDAV for interactive Web application developing;<br>
-          <em>(Can be disabled for production builds.)</em>
-      </ul>
+  <dialog id="dialog">
+    <div class="dlg-body">
+      <span class="dlg-message">This is a message!</span>
+    </div>
+    <form class="dlg-ctrl" method="dialog">
+      <input type="submit" value="OK">
+      <input type="reset" value="Cancel">
+    </form>
+  </dialog>
 
-    <li>Web-based appliance management:
-      <ul>
-        <li><a href="config/ota.html" target="_blank">Firmware image update and toggle</a>.
-        <li><a href="config/sysmgmt.html" target="_blank">User data partition backup, reset and restore</a>.
-      </ul>
-  </ul>
-  <p>The following functions are offered for programmatic integration:
-  <ul>
-    <li>Separate read-only system partition and read-write user partition:
-      <ul>
-        <li>The system partition is (usually) mounted read-only for safer operation;
-        <li>Enabling WebDAV will mount the system partition read-write;
-      </ul>
+  <script>
+    const URL_TWILIGHT_OVERRIDE = "/!twilight/override";
+    const PARAM_DURATION = 'duration';
+    const DEFAULT_TRANSITION_DURATION_MS = 3000;
 
-    <li><a name="config-mgmt">Extensible appliance configuration management API:</a>
-      <ul>
-        <li>Parsing, validation, concurrency-safe access and modification;
-        <li>Layering and delta storage of post-deployment changes (allows simple "reset-to-factory");
-      </ul>
+    const STATIC_COLOR_DAY = '#d9cc82';
+    const STATIC_COLOR_DAWN = '#c73b10';
+    const STATIC_COLOR_FOREST = '#24b020';
+    const STATIC_COLOR_OCEAN = '#1377b0';
 
-    <li>Configuration <a href="config/" target="_blank">Web page sets</a>:
-      <ul>
-        <li><em>Light & dark themed</em>, mobile responsive;
-        <li>Just plug in your app-specific configuration interface;
-      </ul>
+    function send_override_request(duration, transition) {
+      $.ajax({
+        method: 'POST',
+        url: URL_TWILIGHT_OVERRIDE + '?' + $.param({ [PARAM_DURATION]: duration }),
+        data: JSON.stringify(transition),
+        contentType: 'application/json',
+      }).fail(function (jqXHR, textStatus) {
+        var resp_text = (typeof jqXHR.responseText !== 'undefined') ? jqXHR.responseText : textStatus;
+        notify_prompt("Failed to request override:<br>" + resp_text);
+      });
+    }
 
-    <li><a name="rtc-mgmt">Structured RTC memory allocation and access:</a>
-      <ul>
-        <li>RTC memory can be allocated for typed data structures;<br>
-          (Access should be 4-byte aligned.)
-      </ul>
+    function override_static_color(color) {
+      const manual_transition = {
+        duration_ms: DEFAULT_TRANSITION_DURATION_MS.toFixed(0),
+        type: "uniform-color",
+        color: color
+      };
+      const duration_slider = $("#manual-override\\:duration-slider");
+      const duration_enable = $("#manual-override\\:duration-enable");
+      const override_duration = duration_enable.is(':checked') ?
+        duration_slider.slider("value").toFixed(0) : null;
 
-    <li>High-level system events and states:
-      <ul>
-        <li>When connected to configured AP (entering regular servicing);
-        <li>When received IP address assignment from AP;
-        <li>When the AP is disconnected and being retried;
-        <li>When NTP time is received the first time after boot;
-        <li>When some appliance component encountered unexpected failure;
-      </ul>
+      send_override_request(override_duration, manual_transition);
+    }
 
-  </ul>
+    $(function () {
+      $('#redir-config').on('click', function () {
+        window.top.location.href = "config/index.html";
+      });
+      input_setup_num_slider($("#manual-override\\:duration-slider"), {
+        min: 5, max: 3600, step: 5, pagecount: 60, default: 300,
+      });
 
+      $("#manual-override\\:color\\:day").on('click', function () {
+        override_static_color(STATIC_COLOR_DAY);
+      });
+      $("#manual-override\\:color\\:dawn").on('click', function () {
+        override_static_color(STATIC_COLOR_DAWN);
+      });
+      $("#manual-override\\:color\\:forest").on('click', function () {
+        override_static_color(STATIC_COLOR_FOREST);
+      });
+      $("#manual-override\\:color\\:ocean").on('click', function () {
+        override_static_color(STATIC_COLOR_OCEAN);
+      });
+    });
+  </script>
 </body>
 
 </html>

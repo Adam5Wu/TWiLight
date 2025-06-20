@@ -18,6 +18,8 @@
 #include "ZWUtils.hpp"
 #include "ZWAppConfig.h"
 
+#include "TWiLight/Interface.hpp"
+
 namespace zw::esp8266::app::config {
 
 struct AppConfig {
@@ -112,6 +114,9 @@ struct AppConfig {
     // Regular HTTP service is enabled if the root directory is set.
     operator bool() const { return !root_dir.empty(); }
   } http_server;
+
+  // Main app configuration
+  twilight::Config twilight;
 };
 
 // AppConfig reference with exclusive access.

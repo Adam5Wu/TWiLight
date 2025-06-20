@@ -1,4 +1,4 @@
-const ZWBASE_VERSION = "1.1.4"
+const ZWBASE_VERSION = "1.1.9"
 
 const URL_BOOT_SERIAL = "/!sys/boot_serial";
 
@@ -124,6 +124,373 @@ function enable_select_wheeling(container) {
       }
     }
   });
+}
+
+//------------------------------
+// Input control setup
+
+function input_setup_num_slider(slide_bar, val_config, onchange) {
+  slide_bar.data('val_config', val_config);
+
+  const val_min = val_config['min'] || 0;
+  const val_max = val_config['max'] || 100;
+  const val_def = val_config['default'] || ((val_min + val_max) / 2);
+  const val_step = val_config['step'] || 1;
+  const fixedpoint = val_config['fixedpoint'] || 0;
+  const pagecount = val_config['pagecount'] || 10;
+
+  const slide_handle = slide_bar.find(".ui-slider-handle");
+  const slide_input = slide_handle.find("input");
+  slide_input.val(val_def.toFixed(fixedpoint));
+  slide_input.attr("maxlength", val_max.toFixed(fixedpoint).length);
+
+  slide_bar.slider({
+    // animate: true,
+    min: val_min,
+    max: val_max,
+    value: val_def,
+    step: val_step,
+    pagecount: pagecount,
+    slide: function (event, ui) {
+      slide_input.data('refresh')(ui.value);
+    },
+    change: function (event, ui) {
+      slide_input.data('refresh')(ui.value);
+      if (typeof onchange == 'function') onchange(ui.value);
+    }
+  });
+  slide_bar.on('wheel', function (evt) {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    const delta = evt.originalEvent.deltaY;
+    const val = slide_bar.slider("value");
+    const new_val = val + (delta > 0 ? -val_step : val_step);
+    slide_bar.slider("value", new_val);
+  });
+  slide_bar.find(".ui-slider-handle").on('dblclick', function () {
+    slide_input.focus();
+    slide_input.select();
+  });
+  input_setup_numeric(slide_input, {
+    fixedpoint: fixedpoint, min: val_min, max: val_max
+  }, {
+    onconfirm: function (val) {
+      if (typeof val == 'number') {
+        slide_bar.slider("value", val);
+      }
+    },
+    onblur: function () {
+      slide_input.data('refresh')(slide_bar.slider("value"));
+    }
+  });
+  if (!slide_handle.attr("title")) {
+    slide_handle.attr("title", slide_input.attr("title"));
+  }
+}
+
+function input_setup_numeric(input, options, events) {
+  input.data('options', options);
+
+  const hex = options['hex'] || false;
+  const negative = options['negative'] || false;
+  const fixedpoint = options['fixedpoint'] || 0;
+  const spinctrl = options['spinctrl'] || false;
+  const stepsize = options['stepsize'] || 1;
+  const pagesize = options['pagesize'] || 0;
+  const minval = ('min' in options) ? options['min'] : null;
+  const maxval = ('max' in options) ? options['max'] : null;
+  const modulo = options['modulo'] || 0;
+  const fixedlen = options['fixedlen'] || 0;
+
+  if (typeof minval == 'number' && typeof maxval == 'number') {
+    const range = maxval - minval;
+    console.assert(range >= 0, "Invalid ['minval', 'maxval'] range");
+  }
+  if (modulo && (typeof minval == 'number' || typeof maxval == 'number')) {
+    const mod_min = minval || 0;
+    if (typeof minval != 'number') {
+      console.log("Modulo with `maxval` only, assume `minval` of 0");
+    }
+    const mod_max = maxval || 0;
+    if (typeof maxval != 'number') {
+      console.log("Modulo with `minval` only, assume `maxval` of 0");
+    }
+    const mod_range = mod_max - mod_min;
+    console.assert(mod_range == modulo, "Modulo match the value range");
+  }
+  console.assert(!(fixedpoint && hex), "Incompatible mode: 'hex' and 'fixedpoint'");
+  if (fixedlen) {
+    console.assert((typeof minval != 'number') && (typeof maxval != 'number'),
+      "Fixed length input mode is incompatible with range specifiers");
+    console.assert(!negative, "Fixed length input mode is incompatible with negative input");
+  }
+
+  if (!input.attr('title')) {
+    var hint = "Input "
+    if (hex) {
+      hint += "a hexadecimal number";
+      if (typeof minval == 'number') {
+        if (typeof maxval == 'number') {
+          hint += ` between [${minval.toString(16)}, ${maxval.toString(16)}]`;
+        } else {
+          hint += ` >= ${minval.toString(16)}`;
+        }
+      } else if (typeof maxval == 'number') {
+        hint += ` <= ${maxval.toString(16)}`;
+      }
+    } else {
+      hint += fixedpoint ? "a number" : "an integer";
+      if (typeof minval == 'number') {
+        if (typeof maxval == 'number') {
+          hint += ` between [${minval.toFixed(fixedpoint)}, ${maxval.toFixed(fixedpoint)}]`;
+        } else {
+          hint += ` >= ${minval.toFixed(fixedpoint)}`;
+        }
+      } else if (typeof maxval == 'number') {
+        hint += ` <= ${maxval.toFixed(fixedpoint)}`;
+      }
+    }
+    input.attr('title', hint);
+  }
+  if (fixedlen) {
+    input.attr('maxlength', fixedlen);
+  }
+
+  var normalize_text = function (text) {
+    // Truncate excessive precisions
+    if (fixedpoint) {
+      const parts = text.split('.', 2);
+      if (parts.length > 1 && parts[1].length > fixedpoint) {
+        text = parts[0] + '.' + parts[1].substring(0, fixedpoint);
+      }
+    }
+    if (fixedlen) text = text.padStart(fixedlen, '0');
+    return text;
+  }
+
+  var parse_number = function (text) {
+    const num_text = text || 0;
+    const num_val = Number(hex ? "0x" + num_text : num_text);
+    return isNaN(num_val) ? 0 : num_val;
+  };
+
+  var normalize_val = function (new_val) {
+    if (modulo) {
+      if (typeof minval == 'number' || typeof maxval == 'string') {
+        // Work on rounded number to ensure the fixed point string won't touch maxval
+        if (fixedpoint) new_val = parseFloat(new_val.toFixed(fixedpoint));
+        if (typeof minval == 'number') while (new_val < minval) new_val += modulo;
+        if (typeof maxval == 'number') while (new_val >= maxval) new_val -= modulo;
+      } else new_val %= modulo;
+    } else {
+      if (typeof minval == 'number' && new_val < minval) new_val = minval;
+      if (typeof maxval == 'number' && new_val > maxval) new_val = maxval;
+    }
+    return new_val;
+  };
+
+  var marshal_number = function (value) {
+    var text = hex ? value.toString(16) : value.toFixed(fixedpoint);
+    if (fixedlen) text = text.padStart(fixedlen, '0');
+    return text;
+  }
+
+  var refresh_input = function (new_text, new_val, no_trigger) {
+    const input_text = this.value;
+    const selection = [this.selectionStart, this.selectionEnd];
+
+    if (!new_text) new_text = marshal_number(new_val);
+    this.value = new_text;
+
+    // Restore the cursor
+    const input_ipart_len = input_text.split('.', 2)[0].length;
+    const norm_ipart_len = new_text.split('.', 2)[0].length;
+    const new_selection_start = Math.min(new_text.length, (Math.max(0,
+      norm_ipart_len - (input_ipart_len - selection[0]))));
+    const new_selection_end = Math.min(new_text.length, (Math.max(0,
+      norm_ipart_len - (input_ipart_len - selection[1]))));
+    this.setSelectionRange(new_selection_start, new_selection_end);
+
+    if (!no_trigger && typeof events['oninput'] == 'function') {
+      events['oninput'].apply(this, [new_text, new_val]);
+    }
+  };
+  // Export this function for external value assignment
+  input.data("refresh", function (val) {
+    var norm_val;
+    if (typeof val == 'number') {
+      norm_val = normalize_val(val);
+    } else {
+      const norm_text = normalize_text(val);
+      norm_val = normalize_val(parse_number(norm_text));
+    }
+    input.each(function () { refresh_input.apply(this, [null, norm_val, true]); });
+  });
+
+  var derive_selection = function () {
+    const text_len = this.value.length;
+    const selection = [this.selectionStart, this.selectionEnd];
+    if (selection[1] - selection[0] != 1) {
+      if (selection[0] < text_len) this.selectionEnd = selection[0] + 1;
+      else this.selectionStart = selection[1] - 1;
+    }
+  };
+
+  if (fixedlen) {
+    input.val("".padStart(fixedlen, '0'));
+    input.on('focus', derive_selection);
+    input.on('click', function (evt) {
+      setTimeout(function () {
+        derive_selection.apply(this);
+      }.bind(this), 0);
+    });
+  }
+
+  input.on('keydown', function (evt) {
+    // Prevent default behavior for keys other than the following situation
+    if (!(
+      // Regular 0~9, Numpad 0~9
+      ($.inArray(evt.key, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) != -1) ||
+      // If negative input, '+' and '-'
+      (negative && (evt.key == '+' || evt.key == '-')) ||
+      // If hex input, a-f and A-F
+      (hex && $.inArray(evt.key.toLowerCase(), ['a', 'b', 'c', 'd', 'e', 'f']) != -1) ||
+      // If allow floats, '.' if not already has one
+      (fixedpoint && !this.value.includes('.') && evt.key == '.') ||
+      // Edit function keys: left, right, delete, backspace, home, end, tab (unfocus)
+      ($.inArray(evt.which, [37, 39, 46, 8, 36, 35, 9]) != -1) ||
+      // If holding Alt or Ctrl
+      (evt.altKey || evt.ctrlKey))) {
+      evt.preventDefault();
+    }
+    const input_text = this.value;
+    const input_val = parse_number(input_text);
+
+    // Handle negative / positive signs
+    if (negative && (evt.key == '+' || evt.key == '-')) {
+      evt.preventDefault();
+
+      var new_val = input_val;
+      if (evt.key == '+' && input_val < 0) {
+        if (typeof maxval != 'number' || input_val <= maxval) {
+          new_val = Math.abs(new_val);
+        }
+      } else if (evt.key == '-' && input_val > 0) {
+        if (typeof minval != 'number' || input_val >= minval) {
+          new_val = -Math.abs(new_val);
+        }
+      }
+      if (new_val != input_val) refresh_input.apply(this, [null, new_val]);
+    }
+    // Handle spinner control (up, down, page-up, page-down)
+    if (spinctrl && $.inArray(evt.which, [38, 40, 33, 34]) != -1) {
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      var new_val = input_val;
+      if (evt.which == 38) new_val += stepsize;
+      else if (evt.which == 40) new_val -= stepsize;
+      else if (evt.which == 33) new_val += pagesize;
+      else if (evt.which == 34) new_val -= pagesize;
+
+      new_val = normalize_val(new_val);
+      if (new_val != input_val) refresh_input.apply(this, [null, new_val]);
+    }
+    if (evt.which == 27) {
+      // Esc removes the focus.
+      dialog_element_unfocus($(this));
+    } else if (evt.which == 13) {
+      // Enter confirms the value
+      if (typeof events['onconfirm'] == 'function') {
+        const val = input_text ? input_val : null;
+        events['onconfirm'].apply(this, [val]);
+      }
+    }
+
+    // Do not bubble up cursor control keys:
+    // Left, right, home, end
+    if ($.inArray(evt.which, [37, 39, 36, 35]) != -1) {
+      evt.stopPropagation();
+
+      // Fixed length mode takes over regular cursor operation
+      if (fixedlen && !evt.ctrlKey) {
+        evt.preventDefault();
+        const selection_start = this.selectionStart;
+        if (evt.which == 37) {
+          this.selectionStart = Math.max(selection_start - 1, 0);
+        } else if (evt.which == 39) {
+          this.selectionStart = Math.min(selection_start + 1, this.value.length);
+        } else if (evt.which == 36) {
+          this.selectionStart = 0;
+        } else if (evt.which == 35) {
+          this.selectionStart = this.value.length;
+        }
+      }
+    }
+    // Special handling for backspace and delete for fixed length mode
+    if (fixedlen && $.inArray(evt.which, [8, 46]) != -1) {
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      const input_text = this.value;
+      const selection = [this.selectionStart, this.selectionEnd];
+      const new_text = input_text.slice(0, selection[0]) +
+        "".padStart(selection[1] - selection[0], '0') +
+        input_text.slice(selection[1]);
+      const new_val = parse_number(new_text);
+      refresh_input.apply(this, [null, new_val]);
+    }
+    // Fix selection (unless ctrl key is held)
+    if (fixedlen && !evt.ctrlKey) derive_selection.apply(this);
+  });
+
+  if (spinctrl) {
+    input.on('wheel', function (evt) {
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      const input_text = this.value;
+      const input_val = parse_number(input_text);
+
+      const delta = evt.originalEvent.deltaY;
+      var new_val = input_val + (delta > 0 ? -stepsize : stepsize);
+
+      new_val = normalize_val(new_val);
+      if (new_val != input_val) refresh_input.apply(this, [null, new_val]);
+    });
+  }
+
+  input.on('input', function () {
+    const input_text = this.value;
+
+    if (!input_text) {
+      // Still notify the event
+      if (typeof events['oninput'] == 'function') {
+        events['oninput'].apply(this, ["", null]);
+      }
+      return;
+    }
+
+    const norm_text = normalize_text(input_text);
+    const input_val = parse_number(norm_text);
+    const norm_val = normalize_val(input_val);
+    const norm_val_text = marshal_number(norm_val);
+
+    if (norm_text != input_text || norm_val != input_val ||
+      !norm_val_text.startsWith(input_text)) {
+      // Just refresh the input value, we will trigger event later
+      refresh_input.apply(this, [norm_val_text, norm_val, true]);
+    }
+    if (fixedlen) derive_selection.apply(this);
+
+    if (typeof events['oninput'] == 'function') {
+      events['oninput'].apply(this, [norm_text, norm_val]);
+    }
+  });
+  if (events['onblur']) {
+    input.on('blur', events['onblur']);
+  }
 }
 
 //------------------------------
